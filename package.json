@@ -1,0 +1,31 @@
+{
+  "name": "co-park-demo",
+  "version": "0.3.0",
+  "description": "CO-PARK: PICO PARK benzeri, ger\u00e7ek\u00e7i g\u00f6rselli co-op bulmaca-platform oyunu (demo)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:single": "vite build --mode single",
+    "preview": "vite preview",
+    "server": "node server/peer-server.mjs",
+    "test": "node tests/mechanics.test.js",
+    "release": "node scripts/release.mjs"
+  },
+  "dependencies": {
+    "peerjs": "^1.5.5",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "express": "^4.22.3",
+    "peer": "^1.0.2",
+    "vite": "^5.4.21",
+    "vite-plugin-singlefile": "^2.3.4"
+  },
+  "private": true,
+  "type": "module",
+  "homepage": "https://dorukarda.github.io/co-park/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dorukarda/co-park.git"
+  }
+}

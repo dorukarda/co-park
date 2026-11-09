@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CO-PARK — Oynanabilir Demo</title>
+</head>
+<body>
+  <canvas id="game" tabindex="0"></canvas>
+
+  <div id="hud" class="hidden">
+    <div class="hud-left">
+      <div id="hud-world"></div>
+      <div id="hud-level"></div>
+      <div id="hud-hint"></div>
+    </div>
+    <div id="hud-players"></div>
+    <div id="hud-net"></div>
+    <div class="hud-bottom" id="hud-bottom">R: yeniden başlat · Esc: menü</div>
+  </div>
+
+  <div id="banner" class="hidden"></div>
+  <div id="toast" class="hidden"></div>
+  <div id="flash"></div>
+
+  <div id="lobby" class="screen">
+    <div class="panel">
+      <div class="logo">CO-PARK</div>
+      <div class="tag">Birlikte çözülen bulmaca parkı · 12 bölüm · yerel ve çevrim içi</div>
+
+      <div class="online" id="online-pick">
+        <button id="btn-host" class="sec">Çevrim içi oda kur</button>
+        <span class="or">ya da</span>
+        <div class="join-row">
+          <input id="code-input" maxlength="7" placeholder="ODA KODU" autocomplete="off" spellcheck="false" />
+          <button id="btn-join" class="sec">Odaya katıl</button>
+        </div>
+      </div>
+      <div id="net-box" class="hidden">
+        <div id="net-code"></div>
+        <div id="net-status"></div>
+        <div class="net-actions">
+          <button id="btn-copy" class="sec small-btn hidden">Kodu kopyala</button>
+          <button id="btn-invite" class="sec small-btn hidden">Davet bağlantısını kopyala</button>
+          <button id="btn-leave" class="sec small-btn">Odadan çık</button>
+        </div>
+      </div>
+      <div id="net-error" class="hidden"></div>
+
+      <div id="slots"></div>
+      <div class="join-help">
+        <div><kbd>W</kbd> Klavye 1 ile katıl</div>
+        <div><kbd>↑</kbd> Klavye 2 ile katıl</div>
+        <div><kbd>A</kbd> Gamepad ile katıl</div>
+        <div><kbd>Backspace</kbd> Son oyuncunu çıkar</div>
+      </div>
+      <button id="start-btn">Başlat (Enter / Start)</button>
+      <div id="wait-msg" class="hidden">Host'un oyunu başlatması bekleniyor…</div>
+      <div class="small" id="lobby-note">Kimse katılmadan Enter'a basarsanız, tek klavyede 2 oyuncuyla başlar.</div>
+      <table class="controls">
+        <tr><th></th><th>Klavye 1</th><th>Klavye 2</th><th>Gamepad</th></tr>
+        <tr><td>Yürü</td><td>A / D</td><td>← / →</td><td>Sol analog / D-pad</td></tr>
+        <tr><td>Zıpla</td><td>W / Boşluk</td><td>↑</td><td>A (Xbox) · ✕ (PS)</td></tr>
+        <tr><td>Kapıya gir / çık</td><td>S</td><td>↓</td><td>X · B</td></tr>
+      </table>
+      <div class="version-line"><span class="app-version"></span> · <a class="changelog-link" target="_blank" rel="noopener">Yenilikler</a> · <a href="https://github.com/dorukarda/co-park" target="_blank" rel="noopener">Kaynak kodu</a></div>
+    </div>
+  </div>
+
+  <div id="pause" class="screen hidden">
+    <div class="panel narrow">
+      <h2 id="pause-title">Duraklatıldı</h2>
+      <button data-act="resume">Devam (Esc)</button>
+      <button data-act="restart">Bölümü yeniden başlat (R)</button>
+      <div id="pause-levels"></div>
+      <button data-act="quality">Grafik kalitesi: Yüksek</button>
+      <button data-act="mute">Ses: Açık</button>
+      <button data-act="lobby" id="btn-pause-lobby">Lobiye dön (L)</button>
+      <button data-act="leave" id="btn-pause-leave" class="hidden">Odadan ayrıl</button>
+      <div class="version-line"><span class="app-version"></span> · <a class="changelog-link" target="_blank" rel="noopener">Yenilikler</a></div>
+    </div>
+  </div>
+
+  <div id="end" class="screen hidden">
+    <div class="panel narrow">
+      <div class="logo small-logo">Tebrikler!</div>
+      <p>12 bölümün hepsini birlikte bitirdiniz.</p>
+      <p id="end-stats"></p>
+      <button data-act="again" id="btn-again">Baştan oyna</button>
+      <button data-act="lobby" id="btn-end-lobby">Lobiye dön</button>
+      <p id="end-wait" class="hidden small">Host yeni bir oyun başlatabilir.</p>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
