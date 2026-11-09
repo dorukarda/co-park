@@ -6,6 +6,15 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) kurallarına,
 
 ## [Yayınlanmamış]
 
+## [0.4.0] - 2026-11-09
+
+### Eklendi
+- Bölümler sırayla açılıyor: bir bölüm bitince bir sonraki açılır. Kilitli bölümler 🔒 ile gösterilir ve seçilemez.
+- İlerleme tarayıcıda saklanır; sayfa kapanıp açılınca kaldığınız yerden devam edersiniz.
+- Lobide başlangıç bölümü seçimi: varsayılan olarak en son açılan bölüm seçilidir; bitirilen bölümler ✓ ile işaretlidir.
+- Lobide "İlerlemeyi sıfırla" (iki kez tıklayarak onaylanır).
+- Çevrim içi oyunda host'un ilerlemesi geçerlidir; katılan oyuncular birlikte ulaştıkları bölümleri kendi tarayıcılarında da açar.
+
 ## [0.3.0] - 2026-11-09
 
 ### Eklendi

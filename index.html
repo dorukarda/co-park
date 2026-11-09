@@ -54,6 +54,11 @@
         <div><kbd>A</kbd> Gamepad ile katıl</div>
         <div><kbd>Backspace</kbd> Son oyuncunu çıkar</div>
       </div>
+      <div id="level-pick">
+        <div class="pick-title">Başlangıç bölümü <span id="pick-info"></span></div>
+        <div id="lobby-levels" class="level-grid"></div>
+        <button id="btn-reset-progress" class="link-btn">İlerlemeyi sıfırla</button>
+      </div>
       <button id="start-btn">Başlat (Enter / Start)</button>
       <div id="wait-msg" class="hidden">Host'un oyunu başlatması bekleniyor…</div>
       <div class="small" id="lobby-note">Kimse katılmadan Enter'a basarsanız, tek klavyede 2 oyuncuyla başlar.</div>
@@ -72,7 +77,7 @@
       <h2 id="pause-title">Duraklatıldı</h2>
       <button data-act="resume">Devam (Esc)</button>
       <button data-act="restart">Bölümü yeniden başlat (R)</button>
-      <div id="pause-levels"></div>
+      <div id="pause-levels" class="level-grid"></div>
       <button data-act="quality">Grafik kalitesi: Yüksek</button>
       <button data-act="mute">Ses: Açık</button>
       <button data-act="lobby" id="btn-pause-lobby">Lobiye dön (L)</button>

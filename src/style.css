@@ -72,3 +72,15 @@ button:disabled, input:disabled { opacity: .4; cursor: not-allowed; }
 
 .version-line { margin-top: 14px; font-size: 12px; opacity: .6; }
 .version-line a { color: #8ab8ff; }
+
+/* Bölüm seçimi ve kilitler */
+#level-pick { margin: 4px auto 16px; max-width: 640px; }
+.pick-title { font-size: 13px; opacity: .8; margin-bottom: 8px; }
+.level-grid .row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.level-grid .wname { width: 78px; text-align: left; font-size: 12px; opacity: .6; flex: none; }
+.level-grid button.lv { flex: 1; padding: 8px 4px; font-size: 14px; background: rgba(255,255,255,.1); color: #fff; border: 2px solid transparent; position: relative; }
+.level-grid button.lv.done::after { content: '✓'; position: absolute; top: 1px; right: 5px; font-size: 11px; color: #6fdc7b; }
+.level-grid button.lv.sel { border-color: #f5c518; background: rgba(245,197,24,.18); }
+.level-grid button.lv:disabled { opacity: .35; cursor: not-allowed; }
+.panel.narrow .level-grid .wname { width: 64px; }
+.link-btn { background: none !important; color: #8ab8ff !important; font-weight: 500; font-size: 12px; padding: 2px 6px; opacity: .7; }

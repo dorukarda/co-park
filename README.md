@@ -53,7 +53,7 @@ Kamera tüm oyuncuları kapsar, ekran kenarı oyuncuları durdurur.
 | 12 | Şantiye — Son Kat | Köprü + herkesin bindiği yüksek asansör |
 
 Bütün sayılar oyuncu sayısına göre ölçeklenir (OY-10): örneğin 2 oyuncuda sandık 2, 8 oyuncuda 8 kişi ister.
-Menüden (Esc) istediğiniz bölüme atlayabilirsiniz.
+Bölümler sırayla açılır: bir bölümü bitirince bir sonraki açılır. İlerleme tarayıcıda saklanır. Lobide açık bölümlerden başlangıç bölümünü seçebilir, menüden (Esc) açık bölümler arasında geçiş yapabilirsiniz. Çevrim içi oyunda host'un ilerlemesi geçerlidir.
 
 ## Çevrim içi oynama
 
@@ -124,6 +124,7 @@ src/
   input.js           2 klavye düzeni + 8 gamepad
   net.js             çevrim içi bağlantı (PeerJS / WebRTC, oda kodu)
   sync.js            host → istemci durum görüntüleri ve ara değerleme
+  progress.js        bölüm kilitleri ve kayıtlı ilerleme
   audio.js           sentez ses efektleri
   render/
     renderer.js      sahne, ışık, kamera, tema dekorları
@@ -139,7 +140,7 @@ scripts/
 CHANGELOG.md         değişiklik günlüğü
 changelog.html       değişiklik günlüğü sayfası şablonu
 tests/
-  mechanics.test.js  otomatik mekanik testleri (64 test)
+  mechanics.test.js  otomatik mekanik testleri (73 test)
 ```
 
 ## İsterlerle eşleşme (demo kapsamı)

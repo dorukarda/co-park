@@ -7,12 +7,15 @@ import { GameRenderer } from './render/renderer.js';
 import { Sfx } from './audio.js';
 import { NetHost, NetClient, NET_VERSION, APP_VERSION, PAGES_URL, errorText, normalizeCode, rtcAvailable, isEmbedded } from './net.js';
 import { encodeSnapshot, applySnapshot, interpolate, NET_EVENTS } from './sync.js';
+import { Progress } from './progress.js';
 
 const $ = (s) => document.querySelector(s);
 const canvas = $('#game');
 const input = new Input();
 const gfx = new GameRenderer(canvas);
 const sfx = new Sfx();
+const progress = new Progress(LEVELS.length);
+let startLevel = progress.unlocked;   // lobide seçili başlangıç bölümü
 
 // ------------------------------------------------------------ durum
 let mode = 'lobby';            // lobby | play | pause | end
@@ -52,6 +55,7 @@ function setNetUI() {
   $('#start-btn').classList.toggle('hidden', role === 'client');
   $('#wait-msg').classList.toggle('hidden', role !== 'client');
   $('#lobby-note').classList.toggle('hidden', role === 'client');
+  $('#level-pick').classList.toggle('hidden', role === 'client');
   $('#btn-copy').classList.toggle('hidden', role !== 'host' || !host?.code);
   $('#btn-invite').classList.toggle('hidden', role !== 'host' || !host?.code || !/^https?:/.test(location.protocol));
   $('#btn-leave').textContent = role === 'host' ? 'Odayı kapat' : 'Odadan çık';
@@ -146,6 +150,7 @@ function showLobby() {
   gfx.buildLevel(LEVELS[0], world);
   setNetUI();
   renderSlots();
+  renderLevelPicker();
   broadcastLobby();
 }
 
@@ -156,7 +161,7 @@ function startGame() {
   }
   stats = { deaths: 0, time: 0 };
   $('#lobby').classList.add('hidden');
-  loadLevel(0);
+  loadLevel(progress.isUnlocked(startLevel) ? startLevel : 0);
 }
 
 // ------------------------------------------------------------ bölüm
@@ -218,7 +223,11 @@ function handleEvents(events) {
     gfx.onEvent(e, world);
     if (e.type === 'death') { stats.deaths++; banner('Ah! Baştan…', 0.9); $('#flash').style.opacity = 0.45; }
     if (e.type === 'unlock') banner('Kapı açıldı!', 1.2);
-    if (e.type === 'clear') banner('Bölüm tamamlandı!', 2.4);
+    if (e.type === 'clear') {
+      banner('Bölüm tamamlandı!', 2.4);
+      const opened = progress.complete(levelIndex);
+      if (opened !== null) { startLevel = opened; toast(`Yeni bölüm açıldı: ${opened + 1} · ${LEVELS[opened].name}`, 3); }
+    }
   }
   renderChips();
 }
@@ -312,7 +321,7 @@ function sendClientInput(dt, st) {
 function playUpdate(dt, st) {
   const menuKey = input.keyPressed('Escape') || Object.values(st).some((s) => s.startPressed);
   if (online()) {
-    if (menuKey) { menuOpen = !menuOpen; $('#pause').classList.toggle('hidden', !menuOpen); }
+    if (menuKey) { menuOpen = !menuOpen; if (menuOpen) buildLevelButtons(); $('#pause').classList.toggle('hidden', !menuOpen); }
   } else if (menuKey) { openPause(); return; }
 
   if (input.keyPressed('KeyR')) requestRestart();
@@ -331,7 +340,7 @@ function requestRestart() {
 }
 
 // ------------------------------------------------------------ menüler
-function openPause() { mode = 'pause'; $('#pause').classList.remove('hidden'); }
+function openPause() { mode = 'pause'; buildLevelButtons(); $('#pause').classList.remove('hidden'); }
 function closePause() {
   if (online()) menuOpen = false; else mode = 'play';
   $('#pause').classList.add('hidden'); canvas.focus();
@@ -348,18 +357,36 @@ function showEnd() {
   if (role === 'host') host.broadcast({ t: 'end', stats });
 }
 
-function buildLevelButtons() {
-  const el = $('#pause-levels');
+// Bölüm düğmeleri: dünyalara göre satırlar; kilitli bölümler seçilemez.
+function levelGrid(el, act, selected) {
   el.innerHTML = '';
-  let w = '';
+  let row = null, w = '';
   LEVELS.forEach((L, i) => {
-    if (L.world !== w) { w = L.world; const h = document.createElement('div'); h.className = 'w'; h.textContent = `${L.world} · ${L.name.split(' — ')[0]}`; el.appendChild(h); }
+    if (L.world !== w) {
+      w = L.world;
+      row = document.createElement('div'); row.className = 'row';
+      const n = document.createElement('div'); n.className = 'wname'; n.textContent = L.name.split(' — ')[0];
+      row.appendChild(n); el.appendChild(row);
+    }
     const b = document.createElement('button');
-    b.dataset.act = 'lv' + i;
-    b.textContent = String(i + 1);
-    b.title = L.name;
-    el.appendChild(b);
+    const open = progress.isUnlocked(i);
+    b.className = 'lv' + (progress.isCleared(i) ? ' done' : '') + (i === selected ? ' sel' : '');
+    b.dataset.act = act + i;
+    b.disabled = !open;
+    b.textContent = open ? String(i + 1) : '🔒';
+    b.title = open ? `${i + 1}. ${L.name}` : `Kilitli: önce ${i}. bölümü bitirin`;
+    row.appendChild(b);
   });
+}
+
+function buildLevelButtons() { levelGrid($('#pause-levels'), 'lv', levelIndex); }
+
+function renderLevelPicker() {
+  if (!progress.isUnlocked(startLevel)) startLevel = progress.unlocked;
+  levelGrid($('#lobby-levels'), 'pick', startLevel);
+  const done = progress.cleared.size;
+  $('#pick-info').textContent = `· ${done}/${LEVELS.length} bitti`;
+  $('#start-btn').textContent = `Başlat: ${startLevel + 1}. bölüm (Enter / Start)`;
 }
 
 // ------------------------------------------------------------ ağ: host
@@ -474,6 +501,7 @@ function clientMessage(m) {
     case 'level':
       slots = m.slots || [];
       if (m.spectate) toast('Oyun sürüyor: izliyorsunuz. Host lobiye dönünce katılabilirsiniz.', 4);
+      else progress.reach(m.i);
       loadLevel(m.i);
       break;
     case 'snap':
@@ -512,7 +540,14 @@ document.addEventListener('click', (e) => {
   if (!act) return;
   if (act === 'resume') closePause();
   if (act === 'restart') { requestRestart(); closePause(); }
-  if (act.startsWith('lv') && role !== 'client') { stats = { deaths: 0, time: 0 }; loadLevel(Number(act.slice(2))); }
+  if (act.startsWith('lv') && role !== 'client') {
+    const i = Number(act.slice(2));
+    if (progress.isUnlocked(i)) { stats = { deaths: 0, time: 0 }; loadLevel(i); }
+  }
+  if (act.startsWith('pick')) {
+    const i = Number(act.slice(4));
+    if (progress.isUnlocked(i)) { startLevel = i; renderLevelPicker(); }
+  }
   if (act === 'lobby') showLobby();
   if (act === 'leave') stopOnline();
   if (act === 'again') { stats = { deaths: 0, time: 0 }; loadLevel(0); }
@@ -524,6 +559,18 @@ document.addEventListener('click', (e) => {
   if (act === 'mute') { muted = !muted; sfx.muted = muted; e.target.textContent = `Ses: ${muted ? 'Kapalı' : 'Açık'}`; }
 });
 $('#start-btn').addEventListener('click', () => { sfx.unlock(); startGame(); });
+let resetArmed = 0;
+$('#btn-reset-progress').addEventListener('click', (e) => {
+  if (performance.now() - resetArmed > 4000) {
+    resetArmed = performance.now();
+    e.target.textContent = 'Emin misiniz? Tüm bölümler kilitlenecek. Onaylamak için tekrar tıklayın.';
+    setTimeout(() => { e.target.textContent = 'İlerlemeyi sıfırla'; }, 4000);
+    return;
+  }
+  progress.reset(); startLevel = 0; resetArmed = 0;
+  e.target.textContent = 'İlerlemeyi sıfırla';
+  renderLevelPicker(); toast('İlerleme sıfırlandı.');
+});
 $('#btn-host').addEventListener('click', () => { sfx.unlock(); startHosting(); });
 $('#btn-join').addEventListener('click', () => { sfx.unlock(); joinRoom($('#code-input').value); });
 $('#code-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); joinRoom(e.target.value); e.target.blur(); } });
@@ -605,5 +652,5 @@ requestAnimationFrame(frame);
 window.__coPark = {
   get world() { return world; }, loadLevel, get slots() { return slots; }, set slots(v) { slots = v; },
   get role() { return role; }, get code() { return host?.code; }, get mode() { return mode; }, get myId() { return myId; },
-  startGame, startHosting, joinRoom, LEVELS,
+  startGame, startHosting, joinRoom, LEVELS, progress,
 };

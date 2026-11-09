@@ -1,7 +1,7 @@
 {
   "name": "co-park-demo",
-  "version": "0.3.0",
-  "description": "CO-PARK: PICO PARK benzeri, ger\u00e7ek\u00e7i g\u00f6rselli co-op bulmaca-platform oyunu (demo)",
+  "version": "0.4.0",
+  "description": "CO-PARK: PICO PARK benzeri, gerçekçi görselli co-op bulmaca-platform oyunu (demo)",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

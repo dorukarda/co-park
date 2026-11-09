@@ -2,6 +2,7 @@
 import { World, rectsOverlap } from '../src/world.js';
 import { LEVELS } from '../src/levels.js';
 import { CFG } from '../src/config.js';
+import { Progress } from '../src/progress.js';
 
 let fails = 0;
 const ok = (c, msg) => { console.log((c ? '✓ ' : '✗ ') + msg); if (!c) fails++; };
@@ -231,6 +232,28 @@ for (const lv of LEVELS) {
     if (p.x > 32 && p.y > 3.9) done = true;
   }
   ok(done, 'dikey platformla rafa çıkıldı');
+}
+
+// 17) Bölüm kilitleri: sırayla açılır, kaydedilir, sıfırlanır
+{
+  const mem = { d: {}, getItem(k) { return this.d[k] ?? null; }, setItem(k, v) { this.d[k] = String(v); } };
+  const pr = new Progress(12, mem);
+  ok(pr.isUnlocked(0) && !pr.isUnlocked(1) && !pr.isUnlocked(3), 'başlangıçta yalnızca 1. bölüm açık');
+  ok(pr.complete(0) === 1 && pr.isUnlocked(1) && !pr.isUnlocked(2), '1. bölüm bitince 2. açılıyor');
+  pr.complete(1); pr.complete(2);
+  ok(pr.isUnlocked(3) && !pr.isUnlocked(4), '3. bölüm bitince 4. açılıyor, 5. kilitli');
+  ok(pr.complete(1) === null && pr.unlocked === 3, 'eski bir bölümü tekrar bitirmek kilit durumunu bozmuyor');
+  const pr2 = new Progress(12, mem);
+  ok(pr2.unlocked === 3 && pr2.isCleared(2), 'ilerleme kaydedilip yeniden yükleniyor');
+  for (let i = 3; i < 12; i++) pr2.complete(i);
+  ok(pr2.unlocked === 11 && pr2.cleared.size === 12, 'son bölüm bitince taşma yok');
+  pr2.reset();
+  ok(new Progress(12, mem).unlocked === 0, 'sıfırlama kaydediliyor');
+  const bad = { getItem() { return '{bozuk'; }, setItem() { throw new Error('dolu'); } };
+  const pr3 = new Progress(12, bad); pr3.complete(0);
+  ok(pr3.isUnlocked(1), 'bozuk/erişilemeyen depolamada oyun çalışmaya devam ediyor');
+  const pr4 = new Progress(12, mem); pr4.reach(5);
+  ok(pr4.isUnlocked(5) && !pr4.isUnlocked(6), 'çevrim içi ulaşılan bölüm istemcide açılıyor');
 }
 
 console.log(fails ? `\n${fails} test başarısız` : '\nTüm testler geçti');
