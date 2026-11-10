@@ -6,6 +6,9 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) kurallarına,
 
 ## [Yayınlanmamış]
 
+### Düzeltildi
+- Editörde "Dışa aktar", indirmenin engellendiği önizleme görünümlerinde artık bölüm verisini kopyalanabilir metin olarak gösteriyor.
+
 ## [0.6.0] - 2026-11-10
 
 ### Eklendi

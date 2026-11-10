@@ -510,6 +510,10 @@ export class Editor {
     const level = toLevel(this.doc);
     const json = JSON.stringify(level, null, 1);
     const name = (this.doc.meta.name || 'bolum').toLowerCase().replace(/[^a-z0-9çğıöşü]+/gi, '-').replace(/^-|-$/g, '') || 'bolum';
+    let embedded = true;
+    try { embedded = window.self !== window.top; } catch { /* çerçeve içinde */ }
+    const showText = () => this.dialog('Bölüm verisi', `<p>Bu görünümde dosya indirme engelli. Aşağıdaki metni kopyalayıp <code>${name}.co-park.json</code> adıyla kaydedin; <b>İçe aktar</b> ile geri yükleyebilirsiniz.</p><textarea readonly rows="10">${esc(json)}</textarea>`);
+    if (embedded) { showText(); return; }
     try {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
@@ -518,7 +522,7 @@ export class Editor {
       setTimeout(() => URL.revokeObjectURL(a.href), 2000);
       this.opts.toast('Bölüm dosyası indirildi.');
     } catch {
-      this.dialog('Bölüm verisi', `<p>İndirme bu sayfada engellendi. Aşağıdaki metni kopyalayıp <code>.json</code> dosyası olarak kaydedin.</p><textarea readonly rows="10">${esc(json)}</textarea>`);
+      showText();
     }
   }
 
