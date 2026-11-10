@@ -27,10 +27,10 @@ export function renderChangelog(md) {
       out.push(`<h3 class="${m[1].toLowerCase('tr')}">${esc(m[1])}</h3>`);
     } else if ((m = line.match(/^# (.+)/))) {
       closeList(); out.push(`<h1>${inline(m[1])}</h1>`);
-    } else if ((m = line.match(/^- (.+)/))) {
+    } else if ((m = line.match(/^(\s*)- (.+)/))) {
       if (!list) { out.push('<ul>'); list = true; }
       sectionHasContent = true;
-      out.push(`<li>${inline(m[1])}</li>`);
+      out.push(`<li${m[1].length ? ' class="sub"' : ''}>${inline(m[2])}</li>`);
     } else if (line === '') {
       closeList();
     } else {
