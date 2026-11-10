@@ -5,10 +5,10 @@
 // Herkese açık eşleştirme yoktur: yalnızca oda kodunu bilenler katılabilir.
 import { Peer } from 'peerjs';
 
-export const NET_VERSION = 2;                         // ağ protokolü sürümü
+export const NET_VERSION = 3;                         // ağ protokolü sürümü
 export const APP_VERSION = __APP_VERSION__;           // oyun sürümü (package.json)
 export const PAGES_URL = 'https://dorukarda.github.io/co-park/';
-const PREFIX = 'copark-v2-';
+const PREFIX = 'copark-v2-';               // oda adı öneki: sürümden bağımsız; sürüm kontrolü 'hello' ile yapılır
 const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';   // karışan karakterler yok (0/O, 1/I/L)
 const TIMEOUT_MS = 15000;
 

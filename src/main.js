@@ -261,16 +261,16 @@ function simulate(dt, st) {
     const a = remoteInputs[s.owner]?.[s.device];
     if (!a) { inputs[p.id] = {}; return; }
     const key = s.owner + '|' + s.device;
-    const seen = seenCounts[key] || (seenCounts[key] = { jc: a[4], ac: a[5] });
-    inputs[p.id] = { left: !!a[0], right: !!a[1], jump: !!a[2], action: !!a[3], jumpPressed: a[4] > seen.jc, actionPressed: a[5] > seen.ac };
-    seen.jc = a[4]; seen.ac = a[5];
+    const seen = seenCounts[key] || (seenCounts[key] = { jc: a[4], ac: a[5], ec: a[6] || 0 });
+    inputs[p.id] = { left: !!a[0], right: !!a[1], jump: !!a[2], action: !!a[3], jumpPressed: a[4] > seen.jc, actionPressed: a[5] > seen.ac, emotePressed: (a[6] || 0) > seen.ec };
+    seen.jc = a[4]; seen.ac = a[5]; seen.ec = a[6] || 0;
   });
 
   acc += dt;
   let first = true;
   while (acc >= CFG.fixedStep) {
     world.step(CFG.fixedStep, inputs);
-    if (first) { for (const k in inputs) { inputs[k].jumpPressed = false; inputs[k].actionPressed = false; } first = false; }
+    if (first) { for (const k in inputs) { inputs[k].jumpPressed = false; inputs[k].actionPressed = false; inputs[k].emotePressed = false; } first = false; }
     acc -= CFG.fixedStep;
   }
   const evs = world.events.splice(0);
@@ -329,11 +329,12 @@ function sendClientInput(dt, st) {
   for (const s of slots) {
     if (s.owner !== myId) continue;
     const dev = st[s.device] || {};
-    const c = counters[s.device] || (counters[s.device] = { jc: 0, ac: 0 });
+    const c = counters[s.device] || (counters[s.device] = { jc: 0, ac: 0, ec: 0 });
     if (!menuOpen && dev.jumpPressed) c.jc++;
     if (!menuOpen && dev.actionPressed) c.ac++;
+    if (!menuOpen && dev.emotePressed) c.ec++;
     const on = (k) => (!menuOpen && dev[k] ? 1 : 0);
-    d[s.device] = [on('left'), on('right'), on('jump'), on('action'), c.jc, c.ac];
+    d[s.device] = [on('left'), on('right'), on('jump'), on('action'), c.jc, c.ac, c.ec];
   }
   const msg = JSON.stringify(d);
   inputAcc += dt;

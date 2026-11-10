@@ -55,6 +55,7 @@ export class Sfx {
       case 'blockStart': this.noise(0.25, 0.15); break;
       case 'death': this.tone(300, 0.5, { type: 'sawtooth', vol: 0.15, slide: -240 }); this.noise(0.2, 0.2); break;
       case 'clear': [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.3, { type: 'triangle', vol: 0.18, delay: i * 0.1 })); break;
+      case 'emote': this.tone(880 * pitch, 0.07, { type: 'square', vol: 0.08 }); this.tone(1320 * pitch, 0.1, { type: 'square', vol: 0.07, delay: 0.07 }); break;
       case 'join': this.tone(660 * pitch, 0.12, { type: 'triangle', vol: 0.15, slide: 200 }); break;
       default: break;
     }

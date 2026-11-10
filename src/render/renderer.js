@@ -4,6 +4,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { getMaterial, worldBox } from './textures.js';
 import {
   createCharacter, createKey, createDoor, createCrate, createPlate, createGate, createBridge, createSpikes, createMover,
+  createColorGate, iceMaterial, conveyorMaterial, createPine, createSnowman,
   createTree, createBush, createBench, createLamp, createGear, createCone, createBeamTower,
 } from './models.js';
 import { PLAYER_COLORS } from '../config.js';
@@ -21,6 +22,11 @@ const THEMES = {
     skyTop: '#3b3f46', skyBottom: '#8a8178', fog: 0x6d665f, fogNear: 22, fogFar: 60,
     sun: 0xffe2b8, sunI: 2.4, sunDir: [6, 16, 10], hemiSky: 0xfff0dd, hemiGround: 0x3a332c, hemiI: 0.8, env: 0.6,
     ground: 'concrete', top: null, platform: 'metal', elevated: 'darkmetal', floor: 'wood', exposure: 1.05,
+  },
+  winter: {
+    skyTop: '#8fa9c4', skyBottom: '#eef3f8', fog: 0xe3ebf2, fogNear: 26, fogFar: 80,
+    sun: 0xf2f6ff, sunI: 2.6, sunDir: [-6, 16, 12], hemiSky: 0xdfeaff, hemiGround: 0x8a97a8, hemiI: 1.0, env: 0.5,
+    ground: 'soil', top: 'snow', platform: 'wood', elevated: 'darkwood', floor: 'snow', exposure: 1.0,
   },
   construction: {
     skyTop: '#41528a', skyBottom: '#f3a76a', fog: 0xd99a72, fogNear: 28, fogFar: 85,
@@ -108,6 +114,7 @@ export class GameRenderer {
     this.levelGroup = new THREE.Group();
     this.scene.add(this.levelGroup);
     this.particles = [];
+    this.conveyors = [];
     const T = THEMES[level.theme] || THEMES.park;
     this.theme = T;
     this.level = level;
@@ -127,17 +134,29 @@ export class GameRenderer {
       if (s.invisible) continue;
       const thin = s.h <= 0.6;
       const kind = thin ? T.platform : (s.y > 0.5 && T.elevated) ? T.elevated : T.ground;
-      const mesh = new THREE.Mesh(worldBox(s.w, s.h, DEPTH, thin ? 0.5 : 0.35), getMaterial(kind));
+      let mat = getMaterial(s.oneway ? 'metal' : kind);
+      if (s.surface === 'ice') mat = iceMaterial();
+      if (s.surface === 'conveyor') { mat = conveyorMaterial(s.w); mat.map.repeat.x = Math.sign(s.speed) || 1; this.conveyors.push({ mat, speed: s.speed }); }
+      const mesh = new THREE.Mesh(worldBox(s.w, s.h, s.oneway ? DEPTH * 0.7 : DEPTH, thin ? 0.5 : 0.35), mat);
       mesh.position.set(s.x + s.w / 2, s.y + s.h / 2, 0);
       mesh.castShadow = true; mesh.receiveShadow = true;
       add(mesh);
       const elevated = s.y > 0.5 && T.elevated;
+      if (s.oneway) {
+        // tek yönlü platform: ince ızgara görünümü ve yukarı ok
+        mesh.scale.y = 0.6; mesh.position.y = s.y + s.h * 0.7;
+        const arrow = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.arrowTex(), depthWrite: false, opacity: 0.85, transparent: true }));
+        arrow.scale.set(0.5, 0.5, 1); arrow.position.set(s.x + s.w / 2, s.y - 0.3, DEPTH * 0.36);
+        add(arrow);
+        continue;
+      }
+      if (s.surface) continue;
       if (T.top && !thin && !elevated) {
         const top = new THREE.Mesh(worldBox(s.w + 0.06, 0.16, DEPTH + 0.06, 0.4), getMaterial(T.top));
         top.position.set(s.x + s.w / 2, s.y + s.h - 0.05, 0);
         top.receiveShadow = true; top.castShadow = true;
         add(top);
-        this.addGrassTufts(s, G);
+        if (T.top === 'grass') this.addGrassTufts(s, G);
       }
       if (!T.top && !thin && level.theme === 'workshop' && s.y <= 0.5) {
         const edge = new THREE.Mesh(worldBox(s.w, 0.08, 0.06, 1), getMaterial('hazard'));
@@ -178,6 +197,12 @@ export class GameRenderer {
         m.position.set(g.x, g.y, 0); return m;
       }),
       movers: world.movers.map((m) => add(createMover(m.w, m.h, m.mode === 'loop' ? null : 'lift'))),
+      colorGates: world.colorGates.map((c) => {
+        const owner = world.players[c.owner];
+        const col = owner ? PLAYER_COLORS[owner.slot.color].hex : '#888888';
+        const m = add(createColorGate(c.w, c.h, col, owner ? owner.slot.color + 1 : c.who));
+        m.position.set(c.x, c.y, 0); return m;
+      }),
       key: add(createKey()),
       door: add(createDoor(level.theme)),
       players: [],
@@ -237,6 +262,13 @@ export class GameRenderer {
       for (let x = 10; x < W; x += 18) {
         const l = createLamp(); l.position.set(x, 0, -2.6); G.add(l);
       }
+    } else if (level.theme === 'winter') {
+      for (let x = -12; x < W + 14; x += 3 + r() * 4) { const t = createPine(r); t.position.set(x, 0, -4.5 - r() * 14); G.add(t); }
+      for (let x = 8; x < W; x += 20 + r() * 10) { const s = createSnowman(); s.position.set(x, 0, -3.2); G.add(s); }
+      for (let x = -4; x < W + 4; x += 4 + r() * 5) {
+        const m = new THREE.Mesh(new THREE.SphereGeometry(0.8 + r() * 1.2, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), getMaterial('snow'));
+        m.scale.y = 0.45; m.position.set(x, 0, -2.4 - r() * 2); m.receiveShadow = true; G.add(m);
+      }
     } else if (level.theme === 'workshop') {
       const wall = new THREE.Mesh(worldBox(W + 60, 16, 0.3, 0.25), getMaterial('pegboard'));
       wall.position.set(W / 2, 8, -9); wall.receiveShadow = true; G.add(wall);
@@ -292,6 +324,15 @@ export class GameRenderer {
         }
       }
     }
+  }
+
+  arrowTex() {
+    if (this._arrow) return this._arrow;
+    const c = document.createElement('canvas'); c.width = c.height = 64;
+    const x = c.getContext('2d');
+    x.fillStyle = 'rgba(255,255,255,.9)'; x.beginPath(); x.moveTo(32, 8); x.lineTo(54, 34); x.lineTo(40, 34); x.lineTo(40, 56); x.lineTo(24, 56); x.lineTo(24, 34); x.lineTo(10, 34); x.closePath(); x.fill();
+    this._arrow = new THREE.CanvasTexture(c);
+    return this._arrow;
   }
 
   // ------------------------------------------------------------ olay efektleri
@@ -359,6 +400,9 @@ export class GameRenderer {
       pivot.rotation.set(0, a.yaw, wob);
       face.position.x = p.facing * 0.06;
       m.userData.badge.visible = !p.entered;
+      const bub = m.userData.bubble;
+      bub.visible = (p.emote || 0) > 0 && !p.entered;
+      if (bub.visible) { const k = Math.min(1, (1.6 - p.emote) * 8); const s2 = 0.55 * (0.6 + 0.4 * k) * (1 + Math.sin(this.time * 14) * 0.04); bub.scale.set(s2, s2, 1); }
     });
 
     // anahtar
@@ -388,9 +432,11 @@ export class GameRenderer {
     world.plates.forEach((p, i) => {
       const ud = D.plates[i].userData;
       const remain = Math.max(0, p.req - p.count);
-      if (ud.last !== remain) {
-        ud.tex.userData.draw(String(remain), p.pressed ? '#9cff8a' : '#ffffff', 'rgba(20,20,20,0.75)');
-        ud.last = remain;
+      const timing = p.timer && p.pressed && p.count < p.req && !p.crate;
+      const txt = timing ? `${Math.ceil(p.hold)}s` : String(remain);
+      if (ud.last !== txt) {
+        ud.tex.userData.draw(txt, timing ? '#ffd166' : p.pressed ? '#9cff8a' : '#ffffff', 'rgba(20,20,20,0.75)');
+        ud.last = txt;
         ud.btnMat.color.set(p.pressed ? 0x2ecc71 : 0xc0392b);
         ud.btnMat.emissive.set(p.pressed ? 0x2ecc71 : 0xc0392b);
       }
@@ -414,6 +460,7 @@ export class GameRenderer {
       }
     });
 
+    for (const c of this.conveyors || []) c.mat.map.offset.x -= c.speed * dt * 0.35 * c.mat.map.repeat.x;   // oklar bantla aynı yöne akar
     if (this.gears) this.gears.forEach((g, i) => { g.rotation.z += dt * (i % 2 ? 0.3 : -0.3); });
 
     // parçacıklar

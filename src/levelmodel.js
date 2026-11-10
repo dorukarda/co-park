@@ -13,18 +13,20 @@ export const TYPES = {
   plate:    { label: 'Plaka',              icon: 'circle-dot', kind: 'rect', resize: 'w', def: { w: 3.4, h: 0.12, req: 'half' }, color: '#c0392b' },
   gate:     { label: 'Parmaklık',          icon: 'fence',    kind: 'rect', resize: 'h',   def: { w: 0.8, h: 4, plates: [] }, color: '#5b6470' },
   bridge:   { label: 'Köprü',              icon: 'arrows-horizontal', kind: 'rect', resize: 'w', drag: true, def: { w: 6, h: 0.4, plates: [] }, color: '#7c8a99' },
+  colorgate:{ label: 'Renkli kapı',        icon: 'door',     kind: 'rect', resize: true,  def: { w: 0.8, h: 2, who: 1 }, color: '#b07de8' },
   mover:    { label: 'Hareketli platform', icon: 'arrows-left-right', kind: 'rect', resize: 'w', def: { w: 3, h: 0.4, dx: 6, dy: 0, speed: 2.2, pause: 0.7 }, color: '#3d8fd1' },
   lift:     { label: 'Asansör',            icon: 'elevator', kind: 'rect', resize: 'w',   def: { w: 3.2, h: 0.4, dx: 0, dy: 6, speed: 2.4, req: 'all' }, color: '#2a6fb0' },
   key:      { label: 'Anahtar',            icon: 'key',      kind: 'point', single: true, def: {}, color: '#e2b13c' },
   door:     { label: 'Kapı',               icon: 'door',     kind: 'door', single: true, def: { w: 1.4, h: 2 }, color: '#7a4fb5' },
   spawn:    { label: 'Başlangıç',          icon: 'flag',     kind: 'point', single: true, def: {}, color: '#2e9e5b' },
 };
-export const PALETTE_ORDER = ['solid', 'platform', 'spike', 'block', 'plate', 'gate', 'bridge', 'mover', 'lift', 'key', 'door', 'spawn'];
+export const PALETTE_ORDER = ['solid', 'platform', 'spike', 'block', 'plate', 'gate', 'bridge', 'colorgate', 'mover', 'lift', 'key', 'door', 'spawn'];
 
 export const THEMES = [
   { id: 'park', label: 'Park' },
   { id: 'workshop', label: 'Atölye' },
   { id: 'construction', label: 'Şantiye' },
+  { id: 'winter', label: 'Kış' },
 ];
 
 let seq = 0;

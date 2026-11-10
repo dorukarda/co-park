@@ -9,7 +9,7 @@ const overlap1D = (a0, a1, b0, b1) => a0 < b1 - EPS && a1 > b0 + EPS;
 export const rectsOverlap = (a, b) =>
   overlap1D(a.x, a.x + a.w, b.x, b.x + b.w) && overlap1D(a.y, a.y + a.h, b.y, b.y + b.h);
 
-const NO_INPUT = { left: false, right: false, jump: false, action: false, jumpPressed: false, actionPressed: false };
+const NO_INPUT = { left: false, right: false, jump: false, action: false, jumpPressed: false, actionPressed: false, emotePressed: false };
 
 export class World {
   constructor(level, slots) {
@@ -42,11 +42,15 @@ export class World {
       { kind: 'static', id: 'boundR', x: L.width, y: -50, w: 5, h: 200, invisible: true },
     ];
     this.spikes = (L.spikes || []).map(([x, y, w, h]) => ({ x, y, w, h }));
+    // renkli kapı: yalnızca "who" numaralı oyuncu geçebilir (oyuncu sayısını aşarsa son oyuncu)
+    this.colorGates = (L.colorGates || []).map((c, i) => ({
+      kind: 'colorgate', id: 'c' + i, x: c.x, y: c.y, w: c.w, h: c.h, who: c.who, owner: Math.min(c.who, Math.max(1, n)) - 1,
+    }));
     this.blocks = (L.blocks || []).map((b, i) => ({
       kind: 'block', id: 'b' + i, x: b.x, y: b.y, w: b.w, h: b.h,
       req: resolveReq(b.req, n), vy: 0, dx: 0, dy: 0, pushers: 0, moving: false,
     }));
-    this.plates = (L.plates || []).map((p) => ({ ...p, h: 0.12, req: resolveReq(p.req, n), count: 0, pressed: false }));
+    this.plates = (L.plates || []).map((p) => ({ ...p, h: 0.12, req: resolveReq(p.req, n), count: 0, pressed: false, hold: 0 }));
     this.gates = (L.gates || []).map((g, i) => ({ kind: 'gate', id: 'g' + i, ...g, open: 0 }));
     this.movers = (L.movers || []).map((m, i) => ({
       kind: 'mover', id: 'm' + i, ...m, req: resolveReq(m.req ?? 'all', n),
@@ -58,7 +62,7 @@ export class World {
       kind: 'player', id: i, slot,
       x: L.spawn[0] + i * 0.95, y: L.spawn[1], w: CFG.playerW, h: CFG.playerH,
       vx: 0, vy: 0, grounded: false, groundRef: null, coyote: 0, jumpBuf: 0,
-      facing: 1, inDir: 0, entered: false, lastDx: 0, lastDy: 0, landImpact: 0,
+      facing: 1, inDir: 0, entered: false, lastDx: 0, lastDy: 0, landImpact: 0, surface: null, emote: 0,
     }));
     const startX = L.spawn[0] + Math.max(0, n - 1) * 0.475 + 0.4;
     this.cam = { x: startX, y: 2, halfW: CFG.viewHalfW, spreadY: 0 };
@@ -75,10 +79,13 @@ export class World {
       const inp = inputs[p.id] || NO_INPUT;
       p.inp = inp;
       p.inDir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
+      // işaretleşme (OY-13)
+      if (inp.emotePressed && !p.entered) { p.emote = 1.6; this.events.push({ type: 'emote', id: p.id }); }
+      else if (p.emote > 0) p.emote = Math.max(0, p.emote - dt);
     }
 
     this.updateDoorEntry();
-    this.updatePlates();
+    this.updatePlates(dt);
     this.updateGates(dt);
     this.updateMovers(dt);
     this.updateCamera(dt);
@@ -108,7 +115,7 @@ export class World {
   }
 
   envSolids() {
-    const out = [...this.statics, ...this.movers, ...this.blocks];
+    const out = [...this.statics, ...this.movers, ...this.blocks, ...this.colorGates];
     for (const g of this.gates) { const r = this.gateRect(g); if (r) out.push(r); }
     return out;
   }
@@ -117,7 +124,7 @@ export class World {
     if (dx === 0) return null;
     let nx = e.x + dx, hit = null;
     for (const s of solids) {
-      if (s === e || s.ref === e) continue;
+      if (s === e || s.ref === e || s.oneway) continue;   // tek yönlü platform yandan engellemez
       if (!overlap1D(e.y, e.y + e.h, s.y, s.y + s.h)) continue;
       if (dx > 0 && e.x + e.w <= s.x + SKIN && nx + e.w > s.x) { nx = s.x - e.w; hit = s; }
       else if (dx < 0 && e.x >= s.x + s.w - SKIN && nx < s.x + s.w) { nx = s.x + s.w; hit = s; }
@@ -130,7 +137,7 @@ export class World {
     if (dy === 0) return null;
     let ny = e.y + dy, hit = null;
     for (const s of solids) {
-      if (s === e || s.ref === e) continue;
+      if (s === e || s.ref === e || (s.oneway && dy > 0)) continue;   // tek yönlü: alttan geçilir
       if (!overlap1D(e.x, e.x + e.w, s.x, s.x + s.w)) continue;
       if (dy > 0 && e.y + e.h <= s.y + SKIN && ny + e.h > s.y) { ny = s.y - e.h; hit = s; }
       else if (dy < 0 && e.y >= s.y + s.h - SKIN && ny < s.y + s.h) { ny = s.y + s.h; hit = s; }
@@ -150,7 +157,7 @@ export class World {
   }
 
   // ---------------------------------------------------------------- sistemler
-  updatePlates() {
+  updatePlates(dt = 0) {
     for (const pl of this.plates) {
       const c = this.countColumn(pl.x, pl.x + pl.w, pl.y);
       // üzerindeki bir sandık plakayı tek başına basılı tutar
@@ -158,7 +165,10 @@ export class World {
         const cx = b.x + b.w / 2;
         return cx >= pl.x && cx <= pl.x + pl.w && Math.abs(b.y - pl.y) < 0.2;
       });
-      const pressed = crate || c >= pl.req;
+      const raw = crate || c >= pl.req;
+      // zamanlı düğme: bırakıldıktan sonra "timer" saniye daha basılı sayılır
+      if (raw) pl.hold = pl.timer || 0; else if (pl.hold > 0) pl.hold = Math.max(0, pl.hold - dt);
+      const pressed = raw || pl.hold > 0;
       if (pressed && !pl.pressed) this.events.push({ type: 'plate' });
       pl.count = crate ? pl.req : c;
       pl.crate = crate;
@@ -287,9 +297,11 @@ export class World {
         const blockers = [...others, ...this.active.filter((p) => p.inDir !== dir)];
         this.moveX(b, dir * CFG.pushSpeed * dt, blockers);
       }
+      if (b.convey) this.moveX(b, b.convey * dt, [...others, ...this.active]);
       b.vy = Math.max(-CFG.maxFall, b.vy - CFG.gravity * dt);
       const hit = this.moveY(b, b.vy * dt, others);
       if (hit && b.vy < 0) b.vy = 0;
+      b.convey = hit && hit.surface === 'conveyor' ? hit.speed : 0;
       b.dx = b.x - ox; b.dy = b.y - oy;
     }
   }
@@ -299,9 +311,11 @@ export class World {
     const env = this.envSolids();
     const walls = this.camWalls();
 
+    const envAll = env;
     for (const p of act) {
       const sx = p.x, sy = p.y;
       const inp = p.inp || NO_INPUT;
+      const env = envAll.filter((s) => !(s.kind === 'colorgate' && s.owner === p.id));
       const others = act.filter((q) => q !== p);
       const riders = others.filter((q) => q.groundRef === p);
 
@@ -321,9 +335,12 @@ export class World {
         if (cdy && !jumping) this.moveY(p, cdy, solids);
       }
 
-      // 2) Girdi ile yatay hız
+      // yürüyen bant: üstünde duranı taşır
+      if (p.grounded && p.surface === 'conveyor') this.moveX(p, p.surfaceSpeed * dt, [...env, ...others, ...walls]);
+
+      // 2) Girdi ile yatay hız (buzda ivme çok düşük: kayar)
       const target = p.inDir * CFG.runSpeed;
-      const acc = p.grounded ? CFG.groundAccel : CFG.airAccel;
+      const acc = p.grounded ? (p.surface === 'ice' ? CFG.iceAccel : CFG.groundAccel) : CFG.airAccel;
       if (p.vx < target) p.vx = Math.min(target, p.vx + acc * dt);
       else if (p.vx > target) p.vx = Math.max(target, p.vx - acc * dt);
       if (p.inDir) p.facing = p.inDir;
@@ -347,14 +364,17 @@ export class World {
         p.grounded = false; p.groundRef = null;
       } else if (hit && p.vy <= 0) {
         p.grounded = true;
-        p.groundRef = hit.kind === 'static' || hit.kind === 'gate' ? null : (hit.ref || hit);
+        p.groundRef = hit.kind === 'static' || hit.kind === 'gate' || hit.kind === 'colorgate' ? null : (hit.ref || hit);
+        p.surface = hit.surface || null; p.surfaceSpeed = hit.speed || 0;
         p.vy = 0;
         if (!wasGrounded && vyBefore < -7) { p.landImpact = Math.min(1, -vyBefore / 18); this.events.push({ type: 'land', id: p.id }); }
       } else {
         if (hit && p.vy > 0) p.vy = 0;
         p.grounded = false;
         p.groundRef = null;
+        if (!hit) p.surface = p.surface === 'ice' ? 'ice' : null;   // buzdan zıplayınca kayma sürer
       }
+      if (p.grounded && !hit) p.surface = null;
 
       p.lastDx = p.x - sx;
       p.lastDy = p.y - sy;

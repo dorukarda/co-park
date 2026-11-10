@@ -142,3 +142,5 @@ button:disabled, input:disabled { opacity: .4; cursor: not-allowed; }
 #shared-name { font-size: 20px; font-weight: 800; margin: 2px 0; }
 .shared-actions { display: flex; gap: 8px; justify-content: center; margin-top: 8px; flex-wrap: wrap; }
 .pick-actions { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 6px; }
+.ed-check { flex-direction: row !important; align-items: center; gap: 8px !important; }
+.ed-check input { width: auto !important; }

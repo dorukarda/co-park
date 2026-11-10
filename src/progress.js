@@ -17,6 +17,8 @@ export class Progress {
       if (d && Number.isInteger(d.unlocked)) {
         this.unlocked = Math.max(0, Math.min(this.count - 1, d.unlocked));
         this.cleared = new Set((d.cleared || []).filter((i) => Number.isInteger(i) && i >= 0 && i < this.count));
+        // yeni bölümler eklendiyse: bitirilen en son bölümün bir sonrakini aç
+        if (this.cleared.size) this.unlocked = Math.max(this.unlocked, Math.min(this.count - 1, Math.max(...this.cleared) + 1));
       }
     } catch { /* bozuk kayıt: baştan başla */ }
   }

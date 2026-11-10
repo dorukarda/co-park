@@ -6,6 +6,10 @@
 // Mekanikler: solids/platforms (sabit), spikes (diken), blocks (sayılı sandık),
 // plates (basınç plakası; üzerindeki sandık da basar), gates (parmaklık; axis:'x' ise açılan köprü),
 // movers: mode 'loop' (gidip gelen), mode 'lift' (req kadar oyuncu binince kalkan asansör).
+// Yüzeyler: { r:[...], surface:'ice' } buz, { r:[...], surface:'conveyor', speed } yürüyen bant,
+// platformlarda { r:[...], oneway:true } alttan geçilebilen platform.
+// colorGates: { x,y,w,h, who } yalnızca "who" numaralı oyuncunun geçebildiği renkli kapı.
+// plates: timer verilirse bırakıldıktan sonra o kadar saniye daha basılı kalır.
 
 export const LEVELS = [
   // ============================================================ DÜNYA 1 · PARK
@@ -136,5 +140,44 @@ export const LEVELS = [
     gates: [{ x: 16, y: -0.4, w: 8, h: 0.4, plates: ['a', 'b'], axis: 'x' }],
     movers: [{ path: [[34.8, -0.4], [34.8, 7.6]], w: 3.2, h: 0.4, speed: 2.4, mode: 'lift', req: 'all', passX: 38 }],
     key: [53.5, 3.4], door: [66, 0],
+  },
+
+  // ============================================================ DÜNYA 4 · KIŞ
+  {
+    id: 'winter-1', world: 'Dünya 4', name: 'Kış — Buzlu Göl', theme: 'winter', width: 60, spawn: [1.2, 0],
+    hint: 'Buz kaygandır: erken fren yapın! İnce platformlara alttan zıplayarak çıkabilirsiniz.',
+    solids: [[0, -3, 14, 3], { r: [14, -3, 16, 3], surface: 'ice' }, [30, -3, 3, 1.5], [33, -3, 27, 3]],
+    platforms: [{ r: [39, 1.6, 3, 0.4], oneway: true }, { r: [43, 3.2, 3, 0.4], oneway: true }],
+    spikes: [[30, -1.5, 3, 0.45]],
+    key: [44.5, 7.4], door: [55, 0],
+  },
+  {
+    id: 'winter-2', world: 'Dünya 4', name: 'Kış — Renkli Kapı', theme: 'winter', width: 58, spawn: [1.2, 0],
+    hint: 'Renkli camdan yalnızca o renkteki oyuncu geçer. O içerideki plakaya basarken diğerleri kapıdan geçsin.',
+    solids: [[0, -3, 58, 3], [24.8, 0, 0.8, 1.5], [20, 1.5, 5.6, 0.4], [31.6, 4, 1.6, 6]],
+    platforms: [[42, 2.3, 3, 0.5]],
+    colorGates: [{ x: 20, y: 0, w: 0.8, h: 1.5, who: 1 }],
+    plates: [{ id: 'a', x: 21.1, y: 0, w: 3.4, req: 1 }, { id: 'b', x: 34.2, y: 0, w: 3.4, req: 1 }],
+    gates: [{ x: 32, y: 0, w: 0.8, h: 4, plates: ['a', 'b'] }],
+    key: [43.5, 3.4], door: [52, 0],
+  },
+  {
+    id: 'winter-3', world: 'Dünya 4', name: 'Kış — Zamanlı Düğme', theme: 'winter', width: 58, spawn: [1.2, 0],
+    hint: 'Herkes düğmeye basınca kapı birkaç saniye açık kalır. Yürüyen bant sizi geri itiyor: koşun!',
+    solids: [[0, -3, 14, 3], { r: [14, -3, 14, 3], surface: 'conveyor', speed: -2 }, [28, -3, 30, 3], [28.6, 4, 1.6, 6]],
+    platforms: [[40, 2.3, 3, 0.5]],
+    plates: [{ id: 't', x: 10, y: 0, w: 3.4, req: 'all', timer: 6 }],
+    gates: [{ x: 29, y: 0, w: 0.8, h: 4, plates: ['t'] }],
+    key: [41.5, 3.4], door: [52, 0],
+  },
+  {
+    id: 'winter-4', world: 'Dünya 4', name: 'Kış — Son Tepe', theme: 'winter', width: 64, spawn: [1.2, 0],
+    hint: 'Buzda plakanın üstünde durmak zor! Anahtar yalnızca 2 numaralı oyuncunun girebildiği odada.',
+    solids: [[0, -3, 12, 3], { r: [12, -3, 10, 3], surface: 'ice' }, [22, -3, 8, 1], [30, -3, 34, 3], [42.2, 0, 0.8, 1.5], [38, 1.5, 5, 0.4]],
+    spikes: [[22, -2, 8, 0.45]],
+    colorGates: [{ x: 38, y: 0, w: 0.8, h: 1.5, who: 2 }],
+    plates: [{ id: 'a', x: 16, y: 0, w: 3.4, req: 'half' }, { id: 'b', x: 31.5, y: 0, w: 3.4, req: 'half' }],
+    gates: [{ x: 22, y: -0.4, w: 8, h: 0.4, plates: ['a', 'b'], axis: 'x' }],
+    key: [40.5, 0.6], door: [56, 0],
   },
 ];

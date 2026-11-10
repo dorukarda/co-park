@@ -5,6 +5,7 @@ export const CFG = {
   runSpeed: 5.5,
   groundAccel: 70,
   airAccel: 45,
+  iceAccel: 7,          // buzda ivme/fren: kayma hissi
   maxFall: 20,
   pushSpeed: 2.2,       // sayılı blok itilirken hız
   playerW: 0.8,

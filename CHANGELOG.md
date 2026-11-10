@@ -6,6 +6,25 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) kurallarına,
 
 ## [Yayınlanmamış]
 
+## [0.6.0] - 2026-11-10
+
+### Eklendi
+- **Dünya 4 · Kış:** 4 yeni bölüm (toplam 16) — Buzlu Göl, Renkli Kapı, Zamanlı Düğme, Son Tepe. Karlı tema, çam ağaçları ve kardan adamlar.
+- Yeni mekanikler:
+  - **Renkli kapı:** yalnızca belirli numaradaki oyuncu geçebilir; diğerleri ve sandıklar için duvardır.
+  - **Tek yönlü platform:** alttan zıplayarak geçilir, üstüne basılır.
+  - **Zamanlı düğme:** bırakıldıktan sonra birkaç saniye daha basılı kalır; ekranda geri sayım görünür.
+  - **Buz:** hızlanmak ve durmak zorlaşır.
+  - **Yürüyen bant:** üstündeki oyuncuları ve sandıkları taşır.
+- **İşaretleşme tuşu:** karakterin üstünde "!" balonu çıkar (Klavye 1: Q / E, Klavye 2: Sağ Shift, gamepad: Y). Çevrim içi de görünür.
+- Yeni mekaniklerin hepsi bölüm editöründe: renkli kapı nesnesi, zemin için buz / yürüyen bant seçeneği, platform için "alttan geçilebilir", plaka için zamanlayıcı. Editörde Kış teması.
+
+### Değişti
+- Çevrim içi protokol sürümü yükseldi: v0.6 ile eski sürümler birlikte oynayamaz (bağlanırken uyarı verilir).
+
+### Düzeltildi
+- Önceki sürümde tüm bölümleri bitirenler için yeni eklenen bölümler otomatik açılır.
+
 ## [0.5.0] - 2026-11-10
 
 ### Eklendi

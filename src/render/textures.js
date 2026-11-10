@@ -132,6 +132,16 @@ const RECIPES = {
     const f = n(u, v, 5, 6);
     return shade([58, 104, 44], 0.6 + f * 0.6);
   },
+  snow: (u, v, n, rnd) => {
+    const f = n(u, v, 5, 4), sp = rnd();
+    const k = 0.9 + f * 0.12 + (sp > 0.995 ? 0.08 : 0);
+    return [clamp(232 * k), clamp(238 * k), clamp(246 * k)];
+  },
+  rubber: (u, v, n) => {
+    const k = 0.75 + n(u, v, 4, 8) * 0.3;
+    const rib = (v * 16) % 1 < 0.12 ? 0.7 : 1;
+    return shade([46, 48, 52], k * rib);
+  },
   asphalt: (u, v, n, rnd) => {
     const k = 0.75 + n(u, v, 5, 6) * 0.35 + (rnd() - 0.5) * 0.12;
     return shade([66, 66, 70], k);
@@ -169,6 +179,8 @@ const PBR = {
   crate: { roughness: 0.7, metalness: 0, bump: 1.5 },
   foliage: { roughness: 0.85, metalness: 0, bump: 1 },
   asphalt: { roughness: 0.9, metalness: 0, bump: 2 },
+  snow: { roughness: 0.85, metalness: 0, bump: 1.2 },
+  rubber: { roughness: 0.8, metalness: 0, bump: 1.5 },
 };
 
 const matCache = new Map();

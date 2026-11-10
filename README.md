@@ -29,13 +29,14 @@ npm test               # mekanik testleri
 | Yürü | A / D | ← / → | Sol analog / D-pad |
 | Zıpla | W / Boşluk | ↑ | A (Xbox) · ✕ (PS) |
 | Kapıya gir / çık | S | ↓ | X · B |
+| İşaret ver (!) | Q / E | Sağ Shift | Y (Xbox) · △ (PS) |
 | Menü | Esc | | Start |
 | Bölümü yeniden başlat | R | | |
 
 Kurallar: oyuncular birbirinin başına çıkabilir, birbirini engeller; bir oyuncu düşerse herkes baştan başlar.
 Kamera tüm oyuncuları kapsar, ekran kenarı oyuncuları durdurur.
 
-## Bölümler (12)
+## Bölümler (16)
 
 | # | Bölüm | Mekanik |
 | --- | --- | --- |
@@ -51,6 +52,10 @@ Kamera tüm oyuncuları kapsar, ekran kenarı oyuncuları durdurur.
 | 10 | Şantiye — Vinç | Sandıkla kuleye çıkma, vinç platformu |
 | 11 | Şantiye — Beton Bloklar | İki sandık, duvar, plakalar ve parmaklık |
 | 12 | Şantiye — Son Kat | Köprü + herkesin bindiği yüksek asansör |
+| 13 | Kış — Buzlu Göl | Kaygan buz, tek yönlü platformlar |
+| 14 | Kış — Renkli Kapı | Yalnızca 1. oyuncunun geçebildiği kapı, plakalar |
+| 15 | Kış — Zamanlı Düğme | Herkesin basması gereken zamanlı düğme, ters yürüyen bant |
+| 16 | Kış — Son Tepe | Buzda plaka, köprü, 2. oyuncuya özel anahtar odası |
 
 Bütün sayılar oyuncu sayısına göre ölçeklenir (OY-10): örneğin 2 oyuncuda sandık 2, 8 oyuncuda 8 kişi ister.
 Bölümler sırayla açılır: bir bölümü bitirince bir sonraki açılır. İlerleme tarayıcıda saklanır. Lobide açık bölümlerden başlangıç bölümünü seçebilir, menüden (Esc) açık bölümler arasında geçiş yapabilirsiniz. Çevrim içi oyunda host'un ilerlemesi geçerlidir.
@@ -60,6 +65,7 @@ Bölümler sırayla açılır: bir bölümü bitirince bir sonraki açılır. İ
 Lobide **Bölüm editörü**'ne basın.
 
 - **Soldaki palet:** nesne seçip tuvale tıklayın ya da (zemin, platform, diken, köprü için) sürükleyerek çizin.
+- **Yeni mekanikler:** zemini seçip yüzeyini **Buz** ya da **Yürüyen bant** yapın; platformu **alttan geçilebilir** yapın; plakaya **zamanlayıcı** verin; **Renkli kapı** ile yalnızca bir oyuncunun geçebileceği yollar kurun.
 - **Seç ve taşı (V):** nesneyi sürükleyin, sarı tutamaçlarla boyutlandırın, mavi tutamaçla hareketli platformun yolunu ayarlayın.
 - **Sağdaki panel:** seçili nesnenin ayarları (kaç kişi gerektiği, hız, bağlı plakalar…). Hiçbir şey seçili değilken bölümün adı, teması, genişliği ve ipucu.
 - **Plaka bağlama:** parmaklık ya da köprü seçin, **Plaka bağla (L)**'ye basın, plakalara tıklayın.
@@ -161,7 +167,7 @@ scripts/
 CHANGELOG.md         değişiklik günlüğü
 changelog.html       değişiklik günlüğü sayfası şablonu
 tests/
-  mechanics.test.js  otomatik mekanik testleri (107 test)
+  mechanics.test.js  otomatik mekanik testleri (137 test)
 ```
 
 ## İsterlerle eşleşme (demo kapsamı)

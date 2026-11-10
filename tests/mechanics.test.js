@@ -255,6 +255,8 @@ for (const lv of LEVELS) {
   const bad = { getItem() { return '{bozuk'; }, setItem() { throw new Error('dolu'); } };
   const pr3 = new Progress(12, bad); pr3.complete(0);
   ok(pr3.isUnlocked(1), 'bozuk/erişilemeyen depolamada oyun çalışmaya devam ediyor');
+  const old = { d: { 'copark-progress-v1': JSON.stringify({ unlocked: 11, cleared: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }) }, getItem(k) { return this.d[k] ?? null; }, setItem(k, v) { this.d[k] = v; } };
+  ok(new Progress(16, old).isUnlocked(12), 'eski sürümde 12 bölümü bitiren, yeni eklenen 13. bölümü açık görüyor');
   const pr4 = new Progress(12, mem); pr4.reach(5);
   ok(pr4.isUnlocked(5) && !pr4.isUnlocked(6), 'çevrim içi ulaşılan bölüm istemcide açılıyor');
 }
@@ -305,6 +307,70 @@ for (const lv of LEVELS) {
   ok(JSON.stringify(w1.statics.map((s) => [s.x, s.y])) === JSON.stringify(w2.statics.map((s) => [s.x, s.y])) && w2.gates.length === w1.gates.length, 'paylaşılan bölüm aynı açılıyor');
   const evil = sanitizeLevel({ name: 'x'.repeat(500), width: 1e9, theme: '<script>', solids: [[0, 0, 'a', 1]], blocks: [{ req: 99 }] });
   ok(evil.name.length <= 60 && evil.width === 400 && evil.theme === 'park' && evil.solids[0][2] === 0 && evil.blocks[0].req === 8, 'bozuk/kötü niyetli bölüm verisi güvenli hâle getiriliyor');
+}
+
+// 21) Tek yönlü platform: alttan geçilir, üstüne basılır
+{
+  const w = mk('winter-1', 2); center(w, 40); place(w, [[40, 0], [34, 0]]);
+  run(w, 0.3);
+  run(w, 1.2, (p, t) => p.id === 0 ? { jump: true, jumpPressed: t < 0.01 } : {});
+  ok(Math.abs(w.players[0].y - 2.0) < 0.05 && w.players[0].grounded, 'alttan zıplayıp tek yönlü platformun üstüne çıkıldı');
+  run(w, 1, (p) => p.id === 0 ? { right: true } : {});
+  ok(w.players[0].x > 42, 'tek yönlü platform yandan engellemiyor');
+}
+
+// 22) Renkli kapı: yalnızca kendi oyuncusu geçer
+{
+  const w = mk('winter-2', 2); center(w, 18);
+  place(w, [[17, 0], [10, 0]]);
+  run(w, 1.5, (p) => p.id === 0 ? { right: true } : {});
+  ok(w.players[0].x > 20.5, '1. oyuncu renkli kapıdan geçti');
+  ok(w.plates[0].pressed && w.gates[0].open > 0.9, 'içerideki plaka parmaklığı açtı');
+  place(w, [[22, 0], [17, 0]]);
+  run(w, 1.5, (p) => p.id === 1 ? { right: true } : {});
+  ok(w.players[1].x + w.players[1].w <= 20.01, '2. oyuncu renkli kapıdan geçemedi');
+  const w4 = mk('winter-4', 3); center(w4, 36);
+  place(w4, [[35, 0], [36, 0], [30.5, 0]]);
+  run(w4, 1.5, (p) => p.id < 2 ? { right: true } : {});
+  ok(w4.players[1].x > 38.5 && w4.players[0].x + w4.players[0].w <= 38.01, 'Son Tepe: anahtar odasına yalnızca 2. oyuncu girdi');
+}
+
+// 23) Zamanlı düğme: bırakınca birkaç saniye açık kalır, sonra kapanır
+{
+  const w = mk('winter-3', 2); center(w, 18);
+  place(w, [[10.5, 0], [11.6, 0]]);
+  run(w, 0.5);
+  ok(w.plates[0].pressed && w.gates[0].open > 0.9, 'herkes basınca kapı açıldı');
+  place(w, [[14.5, 0], [15.5, 0]]);
+  run(w, 5, () => ({ right: true }));
+  ok(w.plates[0].pressed && w.players.every((p) => p.x > 30), `bırakıldıktan sonra açık kaldı, bant aşılıp kapıdan geçildi (x=${w.players[0].x.toFixed(1)})`);
+  run(w, 4);
+  ok(!w.plates[0].pressed && w.gates[0].open < 0.05, 'süre bitince kapı kapandı');
+}
+
+// 24) Buz kaygan, yürüyen bant taşır
+{
+  const stopDist = (x) => {
+    const w = mk('winter-1', 2); center(w, x + 2); place(w, [[x, 0], [x - 6, 0]]);
+    run(w, 0.2);
+    run(w, 1, (p) => p.id === 0 ? { right: true } : {});
+    const x0 = w.players[0].x; run(w, 1.5);
+    return w.players[0].x - x0;
+  };
+  const ground = stopDist(4), ice = stopDist(17);
+  ok(ice > ground * 3, `buzda fren mesafesi çok daha uzun (zemin ${ground.toFixed(2)}, buz ${ice.toFixed(2)})`);
+  const w = mk('winter-3', 2); center(w, 20); place(w, [[22, 0], [10, 0]]);
+  run(w, 1);
+  ok(w.players[0].x < 20.5 && w.players[0].x > 19.5, `bant duran oyuncuyu sola taşıdı (${w.players[0].x.toFixed(2)})`);
+}
+
+// 25) İşaretleşme
+{
+  const w = mk('park-1', 2); center(w, 4); run(w, 0.2);
+  run(w, 1 / 120, (p) => p.id === 1 ? { emotePressed: true } : {});
+  ok(w.players[1].emote > 1.5 && w.events.some((e) => e.type === 'emote' && e.id === 1), 'işaret balonu çıktı');
+  run(w, 2);
+  ok(w.players[1].emote === 0, 'işaret balonu kayboldu');
 }
 
 console.log(fails ? `\n${fails} test başarısız` : '\nTüm testler geçti');

@@ -5,6 +5,7 @@ import { validate, hasErrors, PHYS } from '../validate.js';
 import { sanitizeLevel } from '../share.js';
 import { LEVELS } from '../levels.js';
 import { drafts } from './store.js';
+import { PLAYER_COLORS } from '../config.js';
 
 const Z = { solid: 0, platform: 1, spike: 2, bridge: 3, plate: 4, gate: 5, colorgate: 5, mover: 6, lift: 6, block: 7, door: 8, key: 9, spawn: 9 };
 const SURFACES = new Set(['solid', 'platform', 'block', 'mover', 'lift', 'bridge']);
@@ -596,7 +597,23 @@ export class Editor {
       num('dy', 'Kalkış yüksekliği'); num('speed', 'Hız'); req('req', 'Kalkmak için binen');
       f.push('<p class="ed-small">Asansörün sağ kenarını geçen oyuncular "çıkmış" sayılır; geride kalanların hepsi binince de kalkar.</p>');
     }
-    this.extraFields?.(o, f, num, req);
+    const sel = (k, label, opts, cur) => f.push(`<label>${label}<select data-f="${k}" data-kind="opt">${opts.map(([v, l]) => `<option value="${v}" ${String(cur ?? '') === String(v) ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`);
+    if (o.type === 'solid') {
+      sel('surface', 'Yüzey', [['', 'Normal'], ['ice', 'Buz (kaygan)'], ['conveyor', 'Yürüyen bant']], o.surface);
+      if (o.surface === 'conveyor') { num('speed', 'Bant hızı (eksi: sola)'); f.push('<p class="ed-small">Üstünde duran oyuncuları ve sandıkları bu hızla taşır. Koşma hızı 5,5.</p>'); }
+      if (o.surface === 'ice') f.push('<p class="ed-small">Buzda hızlanmak ve durmak zordur.</p>');
+    }
+    if (o.type === 'platform') {
+      f.push(`<label class="ed-check"><input type="checkbox" data-f="oneway" ${o.oneway ? 'checked' : ''}> Alttan geçilebilir (tek yönlü)</label>`);
+    }
+    if (o.type === 'plate') {
+      num('timer', 'Zamanlayıcı (sn, 0 = kapalı)');
+      f.push('<p class="ed-small">Zamanlayıcı varsa plaka bırakıldıktan sonra o kadar saniye daha basılı kalır.</p>');
+    }
+    if (o.type === 'colorgate') {
+      sel('who', 'Geçebilen oyuncu', [1, 2, 3, 4, 5, 6, 7, 8].map((n) => [n, `${n}. oyuncu (${PLAYER_COLORS[n - 1].name})`]), o.who);
+      f.push('<p class="ed-small">Yalnızca bu oyuncu geçebilir; diğerleri ve sandıklar için duvardır. Oyuncu sayısı azsa son oyuncuya düşer. Renk, oyunda o oyuncunun seçtiği renge uyar.</p>');
+    }
     f.push('<div class="ed-row">');
     if (!t.single) f.push('<button data-act="dup">Çoğalt</button><button data-act="del" class="danger">Sil</button>');
     f.push('</div>');
@@ -633,13 +650,21 @@ export class Editor {
     const k = el.dataset.f;
     this.edit(() => {
       if (el.dataset.kind === 'req') o[k] = /^\d+$/.test(el.value) ? Number(el.value) : el.value;
-      else if (el.type === 'checkbox') o[k] = el.checked;
+      else if (el.dataset.kind === 'opt') {
+        if (el.value === '') delete o[k];
+        else o[k] = /^-?\d+(\.\d+)?$/.test(el.value) ? Number(el.value) : el.value;
+        if (k === 'surface' && o.surface === 'conveyor' && !o.speed) o.speed = 2;
+        if (k === 'surface' && o.surface !== 'conveyor') delete o.speed;
+      }
+      else if (k === 'timer') { const v = parseNum(el.value); if (Number.isFinite(v) && v > 0) o.timer = Math.min(30, Math.round(v * 10) / 10); else delete o.timer; }
+      else if (el.type === 'checkbox') { if (el.checked) o[k] = true; else delete o[k]; }
       else if (el.tagName === 'SELECT') o[k] = el.value;
       else {
         const v = parseNum(el.value);
         if (!Number.isFinite(v)) return;
         if ((k === 'w' || k === 'h') && v < 0.1) return;
-        if (k === 'speed' && v <= 0) return;
+        if (k === 'speed' && o.type !== 'solid' && v <= 0) return;
+        if (k === 'speed' && o.type === 'solid' && v === 0) return;
         o[k] = Math.round(v * 1000) / 1000;
       }
     });
@@ -827,7 +852,8 @@ export class Editor {
         c.fillStyle = 'rgba(124,138,153,.25)'; c.fillRect(r.x, r.y, r.w, r.h);
         break;
       case 'colorgate':
-        c.fillStyle = (this.colorFor?.(o.who) || '#888') + '88'; c.fillRect(r.x, r.y, r.w, r.h);
+        c.fillStyle = (PLAYER_COLORS[(o.who || 1) - 1]?.hex || '#888888') + '99'; c.fillRect(r.x, r.y, r.w, r.h);
+        c.strokeStyle = '#fff'; c.strokeRect(r.x, r.y, r.w, r.h);
         this.label(String(o.who), r.x + r.w / 2, r.y + r.h / 2 + 4);
         break;
       case 'mover': case 'lift': {

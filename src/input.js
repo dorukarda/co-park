@@ -1,7 +1,7 @@
 // Girdi: 2 klavye düzeni + 8 gamepad'e kadar (KA-01, KA-02).
 const KEYMAPS = {
-  k1: { left: ['KeyA'], right: ['KeyD'], jump: ['KeyW', 'Space'], action: ['KeyS'] },
-  k2: { left: ['ArrowLeft'], right: ['ArrowRight'], jump: ['ArrowUp'], action: ['ArrowDown'] },
+  k1: { left: ['KeyA'], right: ['KeyD'], jump: ['KeyW', 'Space'], action: ['KeyS'], emote: ['KeyQ', 'KeyE'] },
+  k2: { left: ['ArrowLeft'], right: ['ArrowRight'], jump: ['ArrowUp'], action: ['ArrowDown'], emote: ['ShiftRight', 'Slash', 'Period'] },
 };
 const PREVENT = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space']);
 
@@ -35,7 +35,7 @@ export class Input {
       const anyJust = (arr) => arr.some((c) => this.just.has(c));
       st[dev] = {
         left: any(map.left), right: any(map.right), jump: any(map.jump), action: any(map.action),
-        jumpPressed: anyJust(map.jump), actionPressed: anyJust(map.action), startPressed: false,
+        jumpPressed: anyJust(map.jump), actionPressed: anyJust(map.action), emotePressed: anyJust(map.emote), startPressed: false,
       };
     }
     let pads = [];
@@ -47,12 +47,12 @@ export class Input {
       const ax = gp.axes[0] || 0;
       const cur = {
         left: ax < -0.4 || b(14), right: ax > 0.4 || b(15),
-        jump: b(0) || b(12), action: b(2) || b(1) || b(13), start: b(9),
+        jump: b(0) || b(12), action: b(2) || b(1) || b(13), emote: b(3), start: b(9),
       };
       const prev = this.padPrev[dev] || {};
       st[dev] = {
         left: cur.left, right: cur.right, jump: cur.jump, action: cur.action,
-        jumpPressed: cur.jump && !prev.jump, actionPressed: cur.action && !prev.action,
+        jumpPressed: cur.jump && !prev.jump, actionPressed: cur.action && !prev.action, emotePressed: cur.emote && !prev.emote,
         startPressed: cur.start && !prev.start,
       };
       this.padPrev[dev] = cur;

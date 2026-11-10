@@ -46,7 +46,15 @@ export function createCharacter(color, number) {
   badge.position.y = 1.32;
   root.add(badge);
 
-  root.userData = { pivot, face, body, badge };
+  // işaretleşme balonu
+  const etex = labelTexture('!', { fg: '#1c1c1c', bg: '#ffffff', font: 'bold 96px system-ui, sans-serif' });
+  const bubble = new THREE.Sprite(new THREE.SpriteMaterial({ map: etex, depthWrite: false }));
+  bubble.scale.set(0.55, 0.55, 1);
+  bubble.position.y = 1.85;
+  bubble.visible = false;
+  root.add(bubble);
+
+  root.userData = { pivot, face, body, badge, bubble };
   return root;
 }
 
@@ -177,6 +185,68 @@ export function createBridge(w, h) {
   housing.castShadow = true;
   g.add(deck, housing);
   g.userData = { deck };
+  return g;
+}
+
+// ------------------------------------------------------------ renkli kapı (yalnızca o oyuncu geçer)
+export function createColorGate(w, h, color, number) {
+  const g = new THREE.Group();
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(w, h, DEPTH * 0.8),
+    new THREE.MeshPhysicalMaterial({ color, roughness: 0.15, metalness: 0, transparent: true, opacity: 0.42, clearcoat: 1, emissive: color, emissiveIntensity: 0.25, depthWrite: false }));
+  glass.position.set(w / 2, h / 2, 0);
+  const frameMat = getMaterial('darkmetal');
+  const top = new THREE.Mesh(worldBox(w + 0.1, 0.12, DEPTH * 0.85), frameMat);
+  top.position.set(w / 2, h, 0);
+  const tex = labelTexture(String(number), { bg: color, font: 'bold 78px system-ui, sans-serif' });
+  const badge = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthWrite: false }));
+  badge.scale.set(0.45, 0.45, 1);
+  badge.position.set(w / 2, h + 0.45, DEPTH * 0.45);
+  g.add(glass, top, badge);
+  return g;
+}
+
+// ------------------------------------------------------------ buz ve yürüyen bant yüzeyleri
+export function iceMaterial() {
+  return new THREE.MeshPhysicalMaterial({ color: 0xbfe2f5, roughness: 0.05, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.05, transparent: true, opacity: 0.92 });
+}
+export function conveyorMaterial(w) {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 32;
+  const x = c.getContext('2d');
+  x.fillStyle = '#2b2e33'; x.fillRect(0, 0, 128, 32);
+  x.strokeStyle = '#f5c518'; x.lineWidth = 5;
+  for (let i = -1; i < 5; i++) { x.beginPath(); x.moveTo(i * 32 + 6, 4); x.lineTo(i * 32 + 18, 16); x.lineTo(i * 32 + 6, 28); x.stroke(); }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.colorSpace = THREE.SRGBColorSpace;
+  return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.75, metalness: 0.1 });
+}
+
+// ------------------------------------------------------------ kış dekoru
+export function createPine(rnd) {
+  const g = new THREE.Group();
+  const h = 2.5 + rnd() * 3;
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.2, h * 0.35, 8), getMaterial('bark'));
+  trunk.position.y = h * 0.17; trunk.castShadow = true;
+  g.add(trunk);
+  const green = new THREE.MeshStandardMaterial({ color: 0x24452f, roughness: 0.9 });
+  const snow = new THREE.MeshStandardMaterial({ color: 0xf2f6fb, roughness: 0.8 });
+  for (let i = 0; i < 4; i++) {
+    const r = (1.3 - i * 0.25) * (h / 4.5), y = h * 0.3 + i * h * 0.18;
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(r, h * 0.32, 10), green);
+    cone.position.y = y; cone.castShadow = true; g.add(cone);
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(r * 0.72, h * 0.12, 10), snow);
+    cap.position.y = y + h * 0.1; g.add(cap);
+  }
+  return g;
+}
+
+export function createSnowman() {
+  const g = new THREE.Group();
+  const snow = getMaterial('snow');
+  [[0.5, 0.45], [0.36, 1.15], [0.25, 1.65]].forEach(([r, y]) => {
+    const b = new THREE.Mesh(new THREE.SphereGeometry(r, 20, 14), snow); b.position.y = y; b.castShadow = true; g.add(b);
+  });
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.25, 8), new THREE.MeshStandardMaterial({ color: 0xf07b1d }));
+  nose.rotation.x = Math.PI / 2; nose.position.set(0, 1.65, 0.3); g.add(nose);
   return g;
 }
 
