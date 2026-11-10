@@ -8,6 +8,10 @@ import { Sfx } from './audio.js';
 import { NetHost, NetClient, NET_VERSION, APP_VERSION, PAGES_URL, errorText, normalizeCode, rtcAvailable, isEmbedded } from './net.js';
 import { encodeSnapshot, applySnapshot, interpolate, NET_EVENTS } from './sync.js';
 import { Progress } from './progress.js';
+import { Editor } from './editor/editor.js';
+import { encodeLevel, decodeLevel, sanitizeLevel } from './share.js';
+import { fromLevel } from './levelmodel.js';
+import { validate, hasErrors } from './validate.js';
 
 const $ = (s) => document.querySelector(s);
 const canvas = $('#game');
@@ -18,12 +22,14 @@ const progress = new Progress(LEVELS.length);
 let startLevel = progress.unlocked;   // lobide seçili başlangıç bölümü
 
 // ------------------------------------------------------------ durum
-let mode = 'lobby';            // lobby | play | pause | end
+let mode = 'lobby';            // lobby | play | pause | end | editor
 let role = 'local';            // local | host | client
 let host = null, client = null;
 let menuOpen = false;          // çevrim içi menü (oyun durmaz)
 let slots = [];                // { device, color, owner }  owner: 'host' veya istemcinin peer kimliği
-let levelIndex = 0;
+let levelIndex = 0;            // resmi bölüm sırası; özel bölümde -1
+let custom = null;             // özel bölüm: { level, fromEditor, draftId, hash }
+let sharedLevel = null;        // ?level= bağlantısıyla gelen bölüm
 let world = null;
 let acc = 0;
 let hintTimer = 0;
@@ -140,6 +146,8 @@ function lobbyUpdate(st) {
 
 function showLobby() {
   mode = 'lobby'; menuOpen = false;
+  editor.close();
+  renderSharedCard();
   $('#lobby').classList.remove('hidden');
   $('#pause').classList.add('hidden');
   $('#end').classList.add('hidden');
@@ -165,30 +173,38 @@ function startGame() {
 }
 
 // ------------------------------------------------------------ bölüm
-function loadLevel(i) {
+function loadLevel(i) { custom = null; setupLevel(LEVELS[i], i); }
+
+// Özel bölüm (editörden deneme ya da paylaşılan bölüm)
+function loadCustom(level, ctx = {}) { custom = { level, ...ctx }; setupLevel(level, -1); }
+
+function setupLevel(L, i) {
   levelIndex = i;
-  const L = LEVELS[i];
   world = new World(L, slots);
   gfx.buildLevel(L, world);
   mode = 'play'; menuOpen = false;
   acc = 0; snaps.length = 0; chipSig = '';
+  editor.close();
   $('#lobby').classList.add('hidden');
   $('#hud').classList.remove('hidden');
   $('#pause').classList.add('hidden');
   $('#end').classList.add('hidden');
   $('#flash').style.opacity = 0;
-  $('#hud-world').textContent = `${L.world} · Bölüm ${i + 1}/${LEVELS.length}`;
+  $('#hud-world').textContent = i >= 0 ? `${L.world} · Bölüm ${i + 1}/${LEVELS.length}` : custom?.fromEditor ? 'Editörden deneme · Esc: editöre dön' : 'Özel bölüm';
   $('#hud-level').textContent = L.name;
-  $('#hud-hint').textContent = L.hint;
-  $('#hud-hint').classList.remove('fade');
+  $('#hud-hint').textContent = L.hint || (i < 0 ? 'Anahtarı kapıya götürün, sonra herkes kapıya girsin.' : '');
+  $('#hud-hint').classList.toggle('fade', !$('#hud-hint').textContent);
   hintTimer = 12;
   banner(L.name, 1.6);
   renderChips();
   hudNet();
   setNetUI();
+  $('#btn-pause-editor').classList.toggle('hidden', !custom?.fromEditor);
   canvas.focus();
-  if (role === 'host') host.broadcast({ t: 'level', i, slots });
+  if (role === 'host') host.broadcast(levelMessage());
 }
+
+const levelMessage = (extra = {}) => ({ t: 'level', i: levelIndex, slots, ...(levelIndex < 0 && custom ? { custom: custom.level } : {}), ...extra });
 
 let bannerTimer = 0;
 function banner(text, dur = 1.6) {
@@ -225,8 +241,12 @@ function handleEvents(events) {
     if (e.type === 'unlock') banner('Kapı açıldı!', 1.2);
     if (e.type === 'clear') {
       banner('Bölüm tamamlandı!', 2.4);
-      const opened = progress.complete(levelIndex);
-      if (opened !== null) { startLevel = opened; toast(`Yeni bölüm açıldı: ${opened + 1} · ${LEVELS[opened].name}`, 3); }
+      if (levelIndex >= 0) {
+        const opened = progress.complete(levelIndex);
+        if (opened !== null) { startLevel = opened; toast(`Yeni bölüm açıldı: ${opened + 1} · ${LEVELS[opened].name}`, 3); }
+      } else if (custom?.fromEditor) {
+        if (world.players.length >= 2) editor.markVerified(custom.draftId, custom.hash);
+      }
     }
   }
   renderChips();
@@ -264,7 +284,12 @@ function simulate(dt, st) {
     chipSig = ''; renderChips();
   }
   if (world.status === 'clear' && world.statusTime > 2.6) {
-    if (levelIndex + 1 < LEVELS.length) loadLevel(levelIndex + 1);
+    if (custom?.fromEditor) {
+      const n = world.players.length;
+      openEditor(custom.draftId);
+      toast(n >= 2 ? 'Bölümü bitirdiniz! Artık bağlantıyla paylaşabilirsiniz.' : 'Bölümü bitirdiniz. Paylaşmak için en az 2 oyuncuyla bitirmelisiniz.', 4);
+    } else if (custom) showEnd();
+    else if (levelIndex + 1 < LEVELS.length) loadLevel(levelIndex + 1);
     else showEnd();
     return;
   }
@@ -348,6 +373,8 @@ function closePause() {
 
 function showEnd() {
   mode = 'end'; menuOpen = false;
+  $('#end-title').textContent = custom ? 'Bölüm tamamlandı!' : 'Tebrikler!';
+  $('#end-text').textContent = custom ? `"${custom.level.name}" bölümünü birlikte bitirdiniz.` : `${LEVELS.length} bölümün hepsini birlikte bitirdiniz.`;
   $('#hud').classList.add('hidden');
   $('#pause').classList.add('hidden');
   $('#end').classList.remove('hidden');
@@ -408,7 +435,7 @@ function startHosting() {
     onJoin: (id) => {
       toast('Bir oyuncu odaya bağlandı.');
       if (mode === 'lobby') host.send(id, { t: 'lobby', slots, mode });
-      else host.send(id, { t: 'level', i: levelIndex, slots, spectate: true });
+      else host.send(id, levelMessage({ spectate: true }));
       netStatus(`${host.clientCount} bilgisayar bağlı.`);
     },
     onMessage: (id, m) => hostMessage(id, m),
@@ -421,7 +448,7 @@ function startHosting() {
       if (!had) return;
       toast('Bir oyuncu ayrıldı.');
       if (mode === 'lobby') { renderSlots(); broadcastLobby(); }
-      else if (slots.length) loadLevel(levelIndex);   // kalanlarla bölüm yeniden ölçeklenir
+      else if (slots.length) { if (custom) loadCustom(custom.level, custom); else loadLevel(levelIndex); }   // kalanlarla bölüm yeniden ölçeklenir
       else showLobby();
     },
     onError: (e) => { netError(errorText(e)); if (!host?.peer?.open || e.type === 'browser-incompatible') stopOnline(true); },
@@ -501,8 +528,9 @@ function clientMessage(m) {
     case 'level':
       slots = m.slots || [];
       if (m.spectate) toast('Oyun sürüyor: izliyorsunuz. Host lobiye dönünce katılabilirsiniz.', 4);
-      else progress.reach(m.i);
-      loadLevel(m.i);
+      else if (m.i >= 0) progress.reach(m.i);
+      if (m.i < 0 && m.custom) loadCustom(sanitizeLevel(m.custom));
+      else if (m.i >= 0 && m.i < LEVELS.length) loadLevel(m.i);
       break;
     case 'snap':
       if (mode !== 'play' || m.lv !== levelIndex) break;
@@ -532,6 +560,50 @@ function stopOnline(keepError = false) {
   if (mode !== 'lobby') showLobby(); else { setNetUI(); renderSlots(); }
 }
 
+// ------------------------------------------------------------ editör ve paylaşılan bölümler
+const editor = new Editor($('#editor'), {
+  onPlay: (level, ctx) => {
+    if (!slots.length) slots = [{ device: 'k1', color: 0, owner: 'host' }, { device: 'k2', color: 1, owner: 'host' }];
+    stats = { deaths: 0, time: 0 };
+    loadCustom(level, { fromEditor: true, ...ctx });
+    toast('Deneme: Esc menüsünden editöre dönebilirsiniz. 2+ oyuncuyla bitirirseniz bölüm paylaşılabilir olur.', 5);
+  },
+  onExit: () => showLobby(),
+  toast: (m) => toast(m, 3.5),
+  isUnlocked: (i) => progress.isUnlocked(i),
+  shareUrl: async (level) => {
+    const base = /^https?:/.test(location.protocol) && !isEmbedded() ? `${location.origin}${location.pathname}` : PAGES_URL;
+    return `${base}?level=${await encodeLevel(level)}`;
+  },
+});
+
+function openEditor(draftId) {
+  if (online()) { toast('Editör çevrim içi oda açıkken kullanılamaz. Önce odadan çıkın.'); return; }
+  mode = 'editor'; menuOpen = false;
+  for (const id of ['#lobby', '#hud', '#pause', '#end', '#banner']) $(id).classList.add('hidden');
+  editor.open(draftId);
+}
+
+function renderSharedCard() {
+  const el = $('#shared-level');
+  if (!sharedLevel) { el.classList.add('hidden'); return; }
+  el.classList.remove('hidden');
+  $('#shared-name').textContent = sharedLevel.level.name;
+  $('#shared-note').textContent = sharedLevel.errors ? 'Uyarı: bu bölümde hatalar var, düzgün oynanmayabilir.' : (sharedLevel.level.hint || 'Bir oyuncunun editörde yaptığı bölüm.');
+  $('#btn-shared-edit').classList.toggle('hidden', role === 'client');
+  $('#btn-shared-play').classList.toggle('hidden', role === 'client');
+}
+
+function playShared() {
+  if (!sharedLevel) return;
+  if (!slots.length) {
+    if (online()) { toast('Önce en az bir oyuncu katılmalı (W / ↑ / A).'); return; }
+    slots = [{ device: 'k1', color: 0, owner: 'host' }, { device: 'k2', color: 1, owner: 'host' }];
+  }
+  stats = { deaths: 0, time: 0 };
+  loadCustom(sharedLevel.level);
+}
+
 // ------------------------------------------------------------ düğmeler
 let quality = 'high', muted = false;
 document.addEventListener('click', (e) => {
@@ -550,7 +622,8 @@ document.addEventListener('click', (e) => {
   }
   if (act === 'lobby') showLobby();
   if (act === 'leave') stopOnline();
-  if (act === 'again') { stats = { deaths: 0, time: 0 }; loadLevel(0); }
+  if (act === 'again') { stats = { deaths: 0, time: 0 }; if (custom) loadCustom(custom.level, custom); else loadLevel(0); }
+  if (act === 'to-editor' && custom?.fromEditor) openEditor(custom.draftId);
   if (act === 'quality') {
     quality = quality === 'high' ? 'low' : 'high';
     gfx.setQuality(quality);
@@ -559,6 +632,14 @@ document.addEventListener('click', (e) => {
   if (act === 'mute') { muted = !muted; sfx.muted = muted; e.target.textContent = `Ses: ${muted ? 'Kapalı' : 'Açık'}`; }
 });
 $('#start-btn').addEventListener('click', () => { sfx.unlock(); startGame(); });
+$('#btn-editor').addEventListener('click', () => openEditor());
+$('#btn-shared-play').addEventListener('click', () => { sfx.unlock(); playShared(); });
+$('#btn-shared-edit').addEventListener('click', () => {
+  const doc = fromLevel(sharedLevel.level);
+  doc.meta.name = `${sharedLevel.level.name} (kopya)`;
+  openEditor(); editor.newDraft(doc);
+});
+$('#btn-shared-close').addEventListener('click', () => { sharedLevel = null; renderSharedCard(); });
 let resetArmed = 0;
 $('#btn-reset-progress').addEventListener('click', (e) => {
   if (performance.now() - resetArmed > 4000) {
@@ -601,6 +682,14 @@ document.querySelectorAll('.changelog-link').forEach((a) => { a.href = changelog
 
 // Davet bağlantısı: ?join=KOD ile açılırsa odaya otomatik bağlan
 const q = new URLSearchParams(location.search);
+// Paylaşılan bölüm: ?level=KOD
+if (q.get('level')) {
+  decodeLevel(q.get('level')).then((raw) => {
+    const level = sanitizeLevel(raw);
+    sharedLevel = { level, errors: hasErrors(validate(fromLevel(level))) };
+    renderSharedCard();
+  }).catch(() => toast('Bağlantıdaki bölüm açılamadı: bağlantı eksik ya da bozuk olabilir.', 5));
+}
 if (q.get('join')) {
   $('#code-input').value = normalizeCode(q.get('join'));
   if (rtcAvailable()) setTimeout(() => joinRoom($('#code-input').value), 300);
@@ -623,13 +712,13 @@ function frame(now) {
     else if (input.keyPressed('KeyR')) { requestRestart(); closePause(); }
     else if (input.keyPressed('KeyL')) showLobby();
   } else if (mode === 'end') {
-    if (input.keyPressed('Enter') && role !== 'client') { stats = { deaths: 0, time: 0 }; loadLevel(0); }
+    if (input.keyPressed('Enter') && role !== 'client') { stats = { deaths: 0, time: 0 }; if (custom) loadCustom(custom.level, custom); else loadLevel(0); }
   }
 
   if (bannerTimer > 0) { bannerTimer -= dt; if (bannerTimer <= 0) $('#banner').classList.add('hidden'); }
   if (toastTimer > 0) { toastTimer -= dt; if (toastTimer <= 0) $('#toast').classList.add('hidden'); }
   if (mode === 'play' && online()) hudNet();
-  if (world) gfx.update(world, dt);
+  if (world && mode !== 'editor') gfx.update(world, dt);
   input.endFrame();
   requestAnimationFrame(frame);
 }
@@ -652,5 +741,5 @@ requestAnimationFrame(frame);
 window.__coPark = {
   get world() { return world; }, loadLevel, get slots() { return slots; }, set slots(v) { slots = v; },
   get role() { return role; }, get code() { return host?.code; }, get mode() { return mode; }, get myId() { return myId; },
-  startGame, startHosting, joinRoom, LEVELS, progress,
+  startGame, startHosting, joinRoom, LEVELS, progress, editor, openEditor, loadCustom, get custom() { return custom; },
 };

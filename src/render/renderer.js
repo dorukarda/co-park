@@ -108,7 +108,7 @@ export class GameRenderer {
     this.levelGroup = new THREE.Group();
     this.scene.add(this.levelGroup);
     this.particles = [];
-    const T = THEMES[level.theme];
+    const T = THEMES[level.theme] || THEMES.park;
     this.theme = T;
     this.level = level;
 

@@ -28,6 +28,16 @@
       <div class="logo">CO-PARK</div>
       <div class="tag">Birlikte çözülen bulmaca parkı · 12 bölüm · yerel ve çevrim içi</div>
 
+      <div id="shared-level" class="hidden">
+        <div class="shared-head">Paylaşılan bölüm</div>
+        <div id="shared-name"></div>
+        <div id="shared-note" class="small"></div>
+        <div class="shared-actions">
+          <button id="btn-shared-play">Bu bölümü oyna</button>
+          <button id="btn-shared-edit" class="sec">Editörde kopyasını aç</button>
+          <button id="btn-shared-close" class="sec">Kapat</button>
+        </div>
+      </div>
       <div class="online" id="online-pick">
         <button id="btn-host" class="sec">Çevrim içi oda kur</button>
         <span class="or">ya da</span>
@@ -57,7 +67,7 @@
       <div id="level-pick">
         <div class="pick-title">Başlangıç bölümü <span id="pick-info"></span></div>
         <div id="lobby-levels" class="level-grid"></div>
-        <button id="btn-reset-progress" class="link-btn">İlerlemeyi sıfırla</button>
+        <div class="pick-actions"><button id="btn-editor" class="sec small-btn">Bölüm editörü</button><button id="btn-reset-progress" class="link-btn">İlerlemeyi sıfırla</button></div>
       </div>
       <button id="start-btn">Başlat (Enter / Start)</button>
       <div id="wait-msg" class="hidden">Host'un oyunu başlatması bekleniyor…</div>
@@ -77,6 +87,7 @@
       <h2 id="pause-title">Duraklatıldı</h2>
       <button data-act="resume">Devam (Esc)</button>
       <button data-act="restart">Bölümü yeniden başlat (R)</button>
+      <button data-act="to-editor" id="btn-pause-editor" class="hidden">Editöre dön</button>
       <div id="pause-levels" class="level-grid"></div>
       <button data-act="quality">Grafik kalitesi: Yüksek</button>
       <button data-act="mute">Ses: Açık</button>
@@ -88,14 +99,16 @@
 
   <div id="end" class="screen hidden">
     <div class="panel narrow">
-      <div class="logo small-logo">Tebrikler!</div>
-      <p>12 bölümün hepsini birlikte bitirdiniz.</p>
+      <div class="logo small-logo" id="end-title">Tebrikler!</div>
+      <p id="end-text"></p>
       <p id="end-stats"></p>
       <button data-act="again" id="btn-again">Baştan oyna</button>
       <button data-act="lobby" id="btn-end-lobby">Lobiye dön</button>
       <p id="end-wait" class="hidden small">Host yeni bir oyun başlatabilir.</p>
     </div>
   </div>
+
+  <div id="editor" class="hidden"></div>
 
   <script type="module" src="/src/main.js"></script>
 </body>

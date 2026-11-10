@@ -55,6 +55,21 @@ Kamera tüm oyuncuları kapsar, ekran kenarı oyuncuları durdurur.
 Bütün sayılar oyuncu sayısına göre ölçeklenir (OY-10): örneğin 2 oyuncuda sandık 2, 8 oyuncuda 8 kişi ister.
 Bölümler sırayla açılır: bir bölümü bitirince bir sonraki açılır. İlerleme tarayıcıda saklanır. Lobide açık bölümlerden başlangıç bölümünü seçebilir, menüden (Esc) açık bölümler arasında geçiş yapabilirsiniz. Çevrim içi oyunda host'un ilerlemesi geçerlidir.
 
+## Bölüm editörü
+
+Lobide **Bölüm editörü**'ne basın.
+
+- **Soldaki palet:** nesne seçip tuvale tıklayın ya da (zemin, platform, diken, köprü için) sürükleyerek çizin.
+- **Seç ve taşı (V):** nesneyi sürükleyin, sarı tutamaçlarla boyutlandırın, mavi tutamaçla hareketli platformun yolunu ayarlayın.
+- **Sağdaki panel:** seçili nesnenin ayarları (kaç kişi gerektiği, hız, bağlı plakalar…). Hiçbir şey seçili değilken bölümün adı, teması, genişliği ve ipucu.
+- **Plaka bağlama:** parmaklık ya da köprü seçin, **Plaka bağla (L)**'ye basın, plakalara tıklayın.
+- **Alt çubuk:** denetçinin bulduğu hatalar (kırmızı) ve uyarılar (sarı). Tıklayınca ilgili nesne seçilir.
+- **▶ Dene (Enter):** bölümü 3D oyunda oynayın. Esc → Editöre dön.
+- **Bağlantıyla paylaş:** bölümü en az 2 oyuncuyla bitirdikten sonra açılır. Bölüm bağlantının içinde saklanır.
+- Kısayollar: Ctrl+Z / Ctrl+Y geri al / yinele, Ctrl+D çoğalt, Del sil, oklar kaydır, Shift ince ızgara, tekerlek yakınlaştır, sağ tık sürükle kaydır.
+
+Taslaklar tarayıcıda saklanır. Önemli bölümleri **Dışa aktar** ile dosya olarak da saklayın.
+
 ## Çevrim içi oynama
 
 1. **Host:** Lobide **Çevrim içi oda kur**'a basın. 5 harfli bir oda kodu çıkar; arkadaşlarınıza gönderin.
@@ -125,6 +140,12 @@ src/
   net.js             çevrim içi bağlantı (PeerJS / WebRTC, oda kodu)
   sync.js            host → istemci durum görüntüleri ve ara değerleme
   progress.js        bölüm kilitleri ve kayıtlı ilerleme
+  levelmodel.js      nesne türleri; editör belgesi ⇄ bölüm verisi
+  validate.js        bölüm denetçisi (editör + testler)
+  share.js           bölümü bağlantıya gömme ve güvenli açma
+  editor/
+    editor.js        bölüm editörü
+    store.js         editör taslakları
   audio.js           sentez ses efektleri
   render/
     renderer.js      sahne, ışık, kamera, tema dekorları
@@ -140,7 +161,7 @@ scripts/
 CHANGELOG.md         değişiklik günlüğü
 changelog.html       değişiklik günlüğü sayfası şablonu
 tests/
-  mechanics.test.js  otomatik mekanik testleri (73 test)
+  mechanics.test.js  otomatik mekanik testleri (107 test)
 ```
 
 ## İsterlerle eşleşme (demo kapsamı)

@@ -3,6 +3,9 @@ import { World, rectsOverlap } from '../src/world.js';
 import { LEVELS } from '../src/levels.js';
 import { CFG } from '../src/config.js';
 import { Progress } from '../src/progress.js';
+import { fromLevel, toLevel, newDoc, makeObject } from '../src/levelmodel.js';
+import { validate, hasErrors } from '../src/validate.js';
+import { encodeLevel, decodeLevel, sanitizeLevel } from '../src/share.js';
 
 let fails = 0;
 const ok = (c, msg) => { console.log((c ? '✓ ' : '✗ ') + msg); if (!c) fails++; };
@@ -254,6 +257,54 @@ for (const lv of LEVELS) {
   ok(pr3.isUnlocked(1), 'bozuk/erişilemeyen depolamada oyun çalışmaya devam ediyor');
   const pr4 = new Progress(12, mem); pr4.reach(5);
   ok(pr4.isUnlocked(5) && !pr4.isUnlocked(6), 'çevrim içi ulaşılan bölüm istemcide açılıyor');
+}
+
+// 18) Bölüm modeli: resmi bölümler editöre aktarılıp geri çevrilince aynı kalır ve denetçiden geçer
+{
+  const sig = (w) => JSON.stringify({
+    s: w.statics.map((o) => [o.x, o.y, o.w, o.h]), b: w.blocks.map((o) => [o.x, o.y, o.w, o.h, o.req]),
+    p: w.plates.map((o) => [o.x, o.w, o.req]), g: w.gates.map((o) => [o.x, o.y, o.w, o.h, o.axis || '', o.plates.length]),
+    m: w.movers.map((o) => [o.path, o.w, o.mode, o.req, o.passX ?? null]), k: [w.key.x, w.key.y], d: [w.door.x, w.door.y],
+    sp: w.players.map((p) => [p.x, p.y]), z: w.spikes.map((o) => [o.x, o.y, o.w, o.h]),
+  });
+  for (const L of LEVELS) {
+    const doc = fromLevel(L);
+    const back = toLevel(doc, L.id);
+    const a = new World(L, slots(4)), b = new World(back, slots(4));
+    ok(sig(a) === sig(b), `${L.name}: editöre aktarma → geri çevirme kayıpsız`);
+    const res = validate(doc);
+    ok(!hasErrors(res), `${L.name}: denetçide hata yok${hasErrors(res) ? ' → ' + res.filter((r) => r.level === 'error').map((r) => r.msg).join(' | ') : ''}`);
+  }
+}
+
+// 19) Denetçi hataları yakalar
+{
+  const d = newDoc();
+  ok(!hasErrors(validate(d)), 'yeni boş bölüm geçerli');
+  const d2 = newDoc(); d2.objects = d2.objects.filter((o) => o.type !== 'key');
+  ok(validate(d2).some((r) => r.level === 'error' && /Anahtar yok/.test(r.msg)), 'anahtarsız bölüm → hata');
+  const d3 = newDoc(); d3.objects.push(makeObject('solid', 3, 0, { w: 1, h: 2 }));
+  ok(validate(d3).some((r) => r.level === 'error' && /Başlangıçta/.test(r.msg)), 'başlangıç alanını kapatan blok → hata');
+  const d4 = newDoc(); d4.objects.find((o) => o.type === 'key').y = 9;
+  ok(validate(d4).some((r) => r.level === 'warn' && /üst üste gerekiyor/.test(r.msg)), 'çok yüksek anahtar → uyarı');
+  const d5 = newDoc(); d5.objects.push(makeObject('gate', 25, 0));
+  ok(validate(d5).some((r) => r.level === 'error' && /plakaya bağlı değil/.test(r.msg)), 'plakasız parmaklık → hata');
+  const d6 = newDoc(); d6.objects[0].w = 14; d6.objects.push(makeObject('solid', 22, -3, { w: 18, h: 3 }));
+  ok(validate(d6).some((r) => r.level === 'warn' && /boşluk zıplanamaz/.test(r.msg)), '8 birimlik çukur → uyarı');
+  const d7 = newDoc(); d7.objects.find((o) => o.type === 'door').x = 39.5;
+  ok(validate(d7).some((r) => r.level === 'error' && /dışında/.test(r.msg)), 'bölüm dışındaki kapı → hata');
+}
+
+// 20) Paylaşım kodu: gidiş-dönüş ve temizleme
+{
+  const L = LEVELS[6];
+  const code = await encodeLevel(L);
+  const back = sanitizeLevel(await decodeLevel(code));
+  ok(code.startsWith('z') && code.length < 1500, `bölüm sıkıştırılıp bağlantıya sığıyor (${code.length} karakter)`);
+  const w1 = new World(L, slots(3)), w2 = new World(back, slots(3));
+  ok(JSON.stringify(w1.statics.map((s) => [s.x, s.y])) === JSON.stringify(w2.statics.map((s) => [s.x, s.y])) && w2.gates.length === w1.gates.length, 'paylaşılan bölüm aynı açılıyor');
+  const evil = sanitizeLevel({ name: 'x'.repeat(500), width: 1e9, theme: '<script>', solids: [[0, 0, 'a', 1]], blocks: [{ req: 99 }] });
+  ok(evil.name.length <= 60 && evil.width === 400 && evil.theme === 'park' && evil.solids[0][2] === 0 && evil.blocks[0].req === 8, 'bozuk/kötü niyetli bölüm verisi güvenli hâle getiriliyor');
 }
 
 console.log(fails ? `\n${fails} test başarısız` : '\nTüm testler geçti');

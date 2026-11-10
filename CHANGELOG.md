@@ -6,6 +6,25 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) kurallarına,
 
 ## [Yayınlanmamış]
 
+## [0.5.0] - 2026-11-10
+
+### Eklendi
+- **Bölüm editörü** (lobide "Bölüm editörü"): ızgaralı 2D düzenleme alanı; zemin, platform, diken, sandık, plaka, parmaklık, köprü, hareketli platform, asansör, anahtar, kapı ve başlangıç noktası.
+- Sürükleyerek çizme, taşıma, kenarlardan boyutlandırma, hareketli platform yolunu tutamaçla ayarlama, 0,5 / 0,1 birimlik ızgara.
+- Plaka bağlama aracı: parmaklık ya da köprü seçip plakalara tıklayın; bağlantılar çizgiyle gösterilir.
+- Zıplama kılavuzları: seçili yüzeyin üstünde 1, 2 ve 3 kişinin ulaşabileceği yükseklikler ve yanlardaki boşluğun atlanıp atlanamayacağı gösterilir.
+- Otomatik denetim: eksik anahtar/kapı, başlangıç alanını kapatan nesne, plakasız parmaklık, ulaşılamayacak kadar yüksek anahtar, zıplanamayan dikenli çukur gibi sorunlar anında listelenir ve nesne işaretlenir.
+- **Dene** düğmesi: bölüm tek tıkla 3D oyunda açılır; Esc menüsünden editöre dönülür.
+- Geri al / yinele, çoğaltma, ok tuşlarıyla kaydırma; taslaklar tarayıcıda otomatik kaydedilir.
+- Açık resmi bölümlerin kopyasını editörde açma.
+- JSON olarak dışa / içe aktarma.
+- **Bağlantıyla paylaşma:** bölüm sıkıştırılıp bağlantının içine gömülür, sunucu gerekmez. Bağlantıyı açan kişi bölümü oynayabilir ya da kendi editöründe kopyasını açabilir.
+- Paylaşmadan önce bölümü en az 2 oyuncuyla bitirme zorunluluğu; değişiklik yapılırsa yeniden bitirmek gerekir.
+- Çevrim içi oyunda özel bölüm: host'un açtığı özel bölüm tüm oyunculara gönderilir.
+
+### Değişti
+- Bölüm verisine `schema` sürüm alanı eklendi; paylaşılan bölümler açılmadan önce güvenli hâle getirilir.
+
 ## [0.4.0] - 2026-11-09
 
 ### Eklendi

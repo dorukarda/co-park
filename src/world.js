@@ -28,7 +28,13 @@ export class World {
     this.events = [];
     this.attempt = (this.attempt ?? 0) + 1;
 
-    const st = (r, i, flag) => ({ kind: 'static', x: r[0], y: r[1], w: r[2], h: r[3], id: flag + i });
+    // dikdörtgen [x,y,w,h] ya da ek özellikli kayıt { r:[x,y,w,h], surface, speed, oneway }
+    const st = (r, i, flag) => {
+      const a = Array.isArray(r) ? r : r.r;
+      const o = { kind: 'static', x: a[0], y: a[1], w: a[2], h: a[3], id: flag + i };
+      if (!Array.isArray(r)) { if (r.surface) { o.surface = r.surface; o.speed = r.speed ?? 2; } if (r.oneway) o.oneway = true; }
+      return o;
+    };
     this.statics = [
       ...L.solids.map((r, i) => st(r, i, 's')),
       ...(L.platforms || []).map((r, i) => st(r, i, 'p')),
